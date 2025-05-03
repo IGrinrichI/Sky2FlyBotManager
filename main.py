@@ -16,12 +16,15 @@ from clicker import Clicker
 import win32con
 
 
-def beep(freq=1000):
+def beep(freq=1000, sync=False):
     def _beep():
         dur = 1000
         winsound.Beep(freq, dur)
 
-    Thread(target=_beep, daemon=True).start()
+    if sync:
+        _beep()
+    else:
+        Thread(target=_beep, daemon=True).start()
 
 
 def resource_path(relative_path):
@@ -529,9 +532,8 @@ class Player:
 
 
 clicker = Clicker()
-clicker.hwnd = 0x1040668
+clicker.hwnd = 0x1034C
 player = Player()
-
 
 # Медузяки
 target_coords_range = [
@@ -539,8 +541,24 @@ target_coords_range = [
     (30, 30),
 ]
 city_coord = (49, 51)
-
 repeat_cycle_forever = False
+
+# def click_task():
+#     while True:
+#         clicker.keypress(player.fire_key)
+#         time.sleep(.6)
+#
+#
+# # Thread(target=click_task, daemon=True).start()
+# attack_delay = .6
+# last_attack_time = time.time()
+# while True:
+#     if time.time() - last_attack_time > attack_delay:
+#         clicker.keypress(player.fire_key)
+#         last_attack_time = time.time()
+#     # clicker.screen_lookup(window=(-225, 15, -40, 200))
+#     # player.loot()
+#     time.sleep(min(.1, max(0, time.time() - last_attack_time)))
 
 # player.target_coords = (50, 50)
 # player.calculate_target_angle()
@@ -561,23 +579,18 @@ repeat_cycle_forever = False
 # cv2.imwrite('screen.png', clicker.screen)
 # raise SystemExit(0)
 
-
-
-
-s2f_hwnd_set = set()
-
+# Выставляем пресет
 presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(os.getcwd())))
 print("Доступные пресеты:")
 print('\n'.join(f'{i}) {preset[:-len(".preset")]}' for i, preset in enumerate(presets, 1)))
-
-preset_number = '2'
+preset_number = ''
 while not preset_number.isdigit() or preset_number == '0' or int(preset_number) > len(presets):
     preset_number = input('Укажите номер пресета: ')
-
 with open(presets[int(preset_number) - 1], 'r') as f:
     exec(f.read())
 
 print('Наведите курсор мыши на игру и нажмите Ctrl.')
+s2f_hwnd_set = set()
 # Collect windows to operate
 while True:
     with keyboard.Events() as events:
@@ -600,23 +613,6 @@ print(datetime.datetime.now(), 'Процесс запущен.')
 beep()
 if s2f_hwnd_set:
     clicker.hwnd = next(iter(s2f_hwnd_set))
-
-# def click_task():
-#     while True:
-#         clicker.keypress(player.fire_key)
-#         time.sleep(.6)
-#
-#
-# # Thread(target=click_task, daemon=True).start()
-# attack_delay = .6
-# last_attack_time = time.time()
-# while True:
-#     if time.time() - last_attack_time > attack_delay:
-#         clicker.keypress(player.fire_key)
-#         last_attack_time = time.time()
-#     clicker.screen_lookup(window=(-225, 15, -40, 200))
-#     player.loot()
-#     time.sleep(min(.1, max(0, time.time() - last_attack_time)))
 
 while True:
     try:
@@ -693,11 +689,9 @@ while True:
         time.sleep(1)
 
     if not repeat_cycle_forever:
-        beep(1000)
-        time.sleep(1)
-        beep(1100)
-        time.sleep(1)
-        beep(1200)
+        beep(1000, sync=True)
+        beep(1100, sync=True)
+        beep(1200, sync=True)
         break
 
 # # Кружится вокруг небесной канцелярии)
