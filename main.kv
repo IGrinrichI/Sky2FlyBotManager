@@ -1,0 +1,27 @@
+#:kivy 2.1.0
+
+<ClientsWidget>:
+    GridLayout:
+        id: layout
+        size_hint_y: None
+        height: self.minimum_height
+        cols: 1
+
+
+<PresetsWidget>:
+    GridLayout:
+        id: layout
+        size_hint_y: None
+        height: self.minimum_height
+        cols: 1
+
+
+<MainView>:
+    id: main_view
+    orientation: "horizontal"
+    ClientsWidget:
+        id: clients_tree
+        size_hint_x: None
+        width: 140
+    PresetsWidget:
+        id: presets_widget

@@ -6,6 +6,9 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/.venv_padle" />
       <excludeFolder url="file://$MODULE_DIR$/.venv_no_ocr" />
+      <excludeFolder url="file://$MODULE_DIR$/.clear_venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv_clear" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv_clr" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.10 (Sky2FlyWalker)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

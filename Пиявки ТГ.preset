@@ -1,19 +1,19 @@
 {
     "mode": "Убийство мобов в зоне",
-    "available_directions_to_undock": ["с", "ю", "в", "з", "св", "сз", "юв", "юз"],
+    "available_directions_to_undock": ["ю", "в", "св", "юв"],
     "to_farm_path": [
         ["Вылет", []]
     ],
     "to_base_path": [
-        [[50, 50], "Переход между лабиринтами"]
+        [[27, 26], "Переход между лабиринтами"]
     ],
     "target_coords_range": [
-        [44, 46],
-        [44, 55],
-        [50, 57],
-        [57, 55],
-        [57, 46],
-        [50, 42]
+        [42, 17],
+        [45, 28],
+        [39, 32],
+        [35, 44],
+        [34, 52],
+        [28, 44]
     ],
     "repeat_cycle_forever": true,
     "direction_bias": 0.1,
@@ -25,25 +25,25 @@
     "stop_at_destination": false,
     "circle_area": true,
     "area_points": [],
-    "area_coords": [50, 50],
-    "max_distance_away_from_area": 11,
-    "min_distance_from_area": 7,
+    "area_coords": [27, 26],
+    "max_distance_away_from_area": 24,
+    "min_distance_from_area": 9,
 
-    "max_farm_time": 600,
+    "max_farm_time": 900,
 
-    "enemy_types": ["neutral"],
+    "enemy_types": ["agressive"],
     "enemy_focusing_max_time": 1,
     "smart_targeting": true,
-    "fire_when_smart_targeting": true,
+    "fire_when_smart_targeting": false,
     "jump_forward_on_lose_target": true,
     "do_drop_chests": false,
     "stop_if_enemy_in_front_of_ship": true,
     "enemy_kill_timeout": 10,
 
     "death_check_delay": 10,
-    "after_death_wait_time_range": [300, 3600],
+    "after_death_wait_time_range": [3, 3],
 
-    "abilities": [1],
+    "abilities": [],
 
     "force_key": "f",
     "force_forward_key": "q",

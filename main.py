@@ -1,11 +1,26 @@
 import os
+import random
 import sys
 import time
 
+import numpy as np
 
-if getattr(sys, 'frozen', False) and time.time() - os.path.getctime(sys.executable) > 3600 * 24:
-    input('Триал окончен, обратитесь к разработчику ;)')
-    raise SystemExit(0)
+from licence import get_trial_time
+
+if getattr(sys, 'frozen', False):
+    if not os.path.exists('key'):
+        input('Отсутствует ключ доступа, обратитесь к разработчику.')
+        raise SystemExit(0)
+
+    with open('key', 'rb') as f:
+        hash_key = f.read()
+    # trial_time = get_trial_time(input('Введите ключ доступа: '))
+    trial_time = get_trial_time(hash_key)
+    if trial_time <= time.time():
+        input('Триал окончен, обратитесь к разработчику ;)')
+        raise SystemExit(0)
+else:
+    trial_time = 99999999999999999
 
 import datetime
 from threading import Thread
@@ -31,10 +46,26 @@ def beep(freq=1000, sync=False):
         Thread(target=_beep, daemon=True).start()
 
 
-clicker = Clicker()
-clicker.hwnd = 0xC058E
+clicker = Clicker(retry_color=np.array([118, 105, 86], dtype=np.uint8))
+clicker.hwnd = 0x3006E
 player = Player(clicker=clicker)
-autofire = False
+autofire = True
+quest = False
+
+# import cv2
+# fishing_image = cv2.imread(os.path.join('images', 'fishing_spot.png'))
+# player.approach(fishing_image, distance=4, threshold=.65)
+# player.drop_chests()
+# player.send_message_to_chat('/die')
+# player.start_dialog()
+# player.select_dialog_option('закрыть', 1)
+# raise SystemExit(0)
+
+# from imaginary import ImageShower
+# shower = ImageShower()
+# while True:
+    # shower.display(clicker.screen[:,:,::-1])
+    # time.sleep(.1)
 
 # Задаем значения по умолчанию, они все равно будут переопределяться пресетом
 # Путь к месту фарма
@@ -76,6 +107,81 @@ if autofire:
         # clicker.screen_lookup(window=(-225, 15, -40, 200))
         # player.loot()
         time.sleep(min(.1, max(0, time.time() - last_attack_time)))
+
+if quest:
+    import cv2
+
+    def resource_path(relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except AttributeError:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
+    sushi_img = cv2.imread(resource_path(os.path.join('images', 'sushi.PNG')))
+    decline_img = cv2.imread(resource_path(os.path.join('images', 'decline.PNG')))
+    fiola_img = cv2.imread(resource_path(os.path.join('images', 'Fiola.PNG')))
+    end_dialog_img = cv2.imread(resource_path(os.path.join('images', 'end_dialog.PNG')))
+    continue_img = cv2.imread(resource_path(os.path.join('images', 'continue.PNG')))
+    while True:
+        clicker.screen_lookup()
+        clicker.reset_keyboard()
+        window = (850, 400, 1250, 750)
+    
+        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
+        time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img)[0])
+        time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        continue_coord = next(iter(clicker.find_image(continue_img)), None)
+        if continue_coord:
+            clicker.click(*continue_coord)
+            time.sleep(1)
+            clicker.screen_lookup(window=window)
+            clicker.click(*clicker.find_image(sushi_img)[0])
+            time.sleep(1)
+
+        target_npc = None
+        while target_npc is None:
+            clicker.screen_lookup(window=window)
+            target_npc = next(iter(clicker.find_image(fiola_img)), None)
+            if target_npc is None:
+                clicker.screen_lookup(window=window)
+                clicker.click(*clicker.find_image(decline_img)[0])
+                time.sleep(1)
+                clicker.screen_lookup(window=window)
+                clicker.click(*clicker.find_image(sushi_img)[0])
+                time.sleep(1)
+            else:
+                clicker.click(*clicker.find_image(sushi_img)[0])
+                time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(end_dialog_img)[0])
+
+        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=2)
+        player.fly_to(31, 70, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
+        time.sleep(1)
+
+        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img)[0])
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img)[0])
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(end_dialog_img)[0])
+
+        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=1)
+        player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
+        time.sleep(1)
+
 
 # player.target_coords = (50, 50)
 # player.calculate_target_angle()
@@ -149,7 +255,7 @@ if autofire:
 presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(os.getcwd())))
 print("Доступные пресеты:")
 print('\n'.join(f'{i}) {preset[:-len(".preset")]}' for i, preset in enumerate(presets, 1)))
-preset_number = '2'
+preset_number = ''
 while not preset_number.isdigit() or preset_number == '0' or int(preset_number) > len(presets):
     preset_number = input('Укажите номер пресета: ')
 # with open(presets[int(preset_number) - 1], 'r', encoding='utf-8') as f:
@@ -192,12 +298,20 @@ while True:
     try:
         player.lookup_coords()
     except ValueError:
-        player.fly_route(player.to_farm_path)
+        try:
+            player.fly_route(player.to_farm_path)
+        except ValueError:
+            continue
 
     if player.is_overweight():
         print(datetime.datetime.now(), 'Вылет с перегрузом.')
         undock_with_overweight = True
     else:
+        time.sleep(1)
+        # Отдаляем радар
+        for i in range(7):
+            clicker.keypress('^-')
+        time.sleep(2)
         # Активируем умения
         player.activate_abilities()
 
@@ -208,6 +322,9 @@ while True:
     player.in_combat = True
     try:
         while player.is_farming():
+            # Обработка смерти
+            if player.is_dead():
+                raise ValueError
             # Убиваем
             player.target_and_kill()
 
@@ -235,15 +352,20 @@ while True:
             print(datetime.datetime.now(), 'Перегруз')
         print(datetime.datetime.now(), 'Фарм окончен, летим в город.')
         # Летим в центр (город)
+        player.loot_on_fly = False
         if undock_with_overweight:
             player.fly_route([player.to_base_path[-1]])
         else:
+            # Выкидываем сундуки
+            if player.do_drop_chests:
+                player.drop_chests()
             player.fly_route(player.to_base_path)
     except ValueError:
         pass
 
     print(datetime.datetime.now(), 'В городе')
     player.target_bias = origin_target_bias
+    player.loot_on_fly = True
 
     time.sleep(1)
     clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
@@ -252,8 +374,13 @@ while True:
     time.sleep(1)
     player.store_resources_and_service()
     time.sleep(1)
+    player.reload_gasholders()
+    clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
+    clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
+    clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
+    time.sleep(1)
 
-    if not player.repeat_cycle_forever:
+    if not player.repeat_cycle_forever or trial_time <= time.time():
         beep(1000, sync=True)
         beep(1100, sync=True)
         beep(1200, sync=True)
