@@ -4,8 +4,10 @@
     <content url="file://$MODULE_DIR$/../Clicker" />
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv_padle" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv_no_ocr" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (Sky2FlyWalker)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

@@ -23,7 +23,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Sky2Fly_mob_farmer',
+    name='Sky2FlyMobFarmer',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
