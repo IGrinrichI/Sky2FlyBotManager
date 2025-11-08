@@ -1,4 +1,5 @@
 import os
+import sys
 
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty
@@ -35,7 +36,13 @@ class PresetsWidget(ScrollView):
 
     def update(self, _):
         layout = self.ids.layout
-        presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(os.getcwd())))
+
+        if hasattr(sys, '_MEIPASS'):
+            preset_dir = os.getcwd()
+        else:
+            preset_dir = os.path.join(os.getcwd(), 'presets')
+
+        presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(preset_dir)))
         preset_names = [preset[:-len(".preset")] for preset in presets]
         current_presets = {child.text: child for child in layout.children}
 

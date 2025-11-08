@@ -146,7 +146,11 @@ class ClientButton(BoxLayout):
 
         selected_preset = app.ids.presets_widget.selected_preset
         if selected_preset is not None:
-            preset = selected_preset.text + '.preset'
+            if hasattr(sys, '_MEIPASS'):
+                preset = selected_preset.text + '.preset'
+            else:
+                preset = os.path.join('presets', selected_preset.text + '.preset')
+
             process, stdout = get_farm_process(hwnd=self.hwnd, preset=preset, trial_time=trial_time)
             process.start()
             self.process = process

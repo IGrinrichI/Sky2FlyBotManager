@@ -252,7 +252,11 @@ if quest:
 
 
 # Выставляем пресет
-presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(os.getcwd())))
+if hasattr(sys, '_MEIPASS'):
+    preset_dir = os.getcwd()
+else:
+    preset_dir = os.path.join(os.getcwd(), 'presets')
+presets = list(filter(lambda x: x.endswith('.preset'), os.listdir(preset_dir)))
 print("Доступные пресеты:")
 print('\n'.join(f'{i}) {preset[:-len(".preset")]}' for i, preset in enumerate(presets, 1)))
 preset_number = ''
@@ -261,7 +265,7 @@ while not preset_number.isdigit() or preset_number == '0' or int(preset_number) 
 # with open(presets[int(preset_number) - 1], 'r', encoding='utf-8') as f:
 #     exec(f.read())
 
-player.load_preset(presets[int(preset_number) - 1])
+player.load_preset(os.path.join(preset_dir, presets[int(preset_number) - 1]))
 
 print('Наведите курсор мыши на игру и нажмите Ctrl.')
 s2f_hwnd_set = set()
