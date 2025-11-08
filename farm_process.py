@@ -111,4 +111,4 @@ def get_farm_process(hwnd, preset, trial_time):
     from multiprocessing import freeze_support
     freeze_support()
     parent_conn, child_conn = Pipe()
-    return Process(target=farm_process, args=(hwnd, preset, trial_time, child_conn)), parent_conn
+    return Process(target=farm_process, args=(hwnd, preset, trial_time, child_conn), daemon=True), parent_conn
