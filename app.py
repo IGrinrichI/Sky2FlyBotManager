@@ -17,7 +17,9 @@ class MainView(BoxLayout):
 
 
 class Sky2FlyBotManagerApp(App):
+
     def build(self):
+        self.icon = resource_path('images/icon.png')
         game = MainView()
         return game
 
