@@ -2,15 +2,16 @@
     "mode": "Убийство мобов в зоне",
     "available_directions_to_undock": [],
     "to_farm_path": [
-        ["Перелететь", "ТОННЕЛЬ 1(МЕДУЗЫ НЕ УБИРАТЬ!)"]
+        ["Перелететь", "Медузки"],
+        [[43, 45], "Быстро лететь к цели"]
     ],
     "to_base_path": [
-        [[31, 54], "Быстро лететь к цели"],
+        [[45, 51], "Быстро лететь к цели"],
         ["В тоннель", "База клана"]
     ],
     "target_coords_range": [
-        [33, 61],
-        [33, 77]
+        [42, 44],
+        [30, 30]
     ],
     "repeat_cycle_forever": true,
     
@@ -24,12 +25,12 @@
     "circle_area": false,
     
     "area_points": [
-        [27, 51],
-        [39, 51],
-        [39, 80],
-        [27, 80]
+        [25, 32],
+        [33, 26],
+        [46, 41],
+        [38, 48]
     ],
-    "area_coords": [33, 67],
+    "area_coords": [37, 38],
     "max_distance_away_from_area": 11,
     "min_distance_from_area": -1,
     
@@ -45,7 +46,7 @@
     "enemy_kill_timeout": 10,
 
     "death_check_delay": 10,
-    "after_death_wait_time_range": [300, 3600],
+    "after_death_wait_time_range": [3, 3],
     
     "abilities": [1, 2],
 

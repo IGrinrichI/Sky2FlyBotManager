@@ -5,7 +5,7 @@ import random
 import time
 import os
 import sys
-from threading import Thread
+from threading import Thread, Lock, Event
 
 import cv2
 import numpy as np
@@ -33,7 +33,7 @@ def beep(freq=1000, sync=False):
     else:
         Thread(target=_beep, daemon=True).start()
 
-
+# Координаты радара
 coord_imgs = {
     "0": cv2.imread(resource_path(os.path.join('images', 'radar_coordinate_0.bmp'))),
     "1": cv2.imread(resource_path(os.path.join('images', 'radar_coordinate_1.bmp'))),
@@ -47,16 +47,27 @@ coord_imgs = {
     "9": cv2.imread(resource_path(os.path.join('images', 'radar_coordinate_9.bmp'))),
     ':': cv2.imread(resource_path(os.path.join('images', 'radar_coordinate_split.bmp'))),
 }
+# Картинка с крестиком в залоченной цели
 enemy_locked_on = cv2.imread(resource_path(os.path.join('images', 'enemy_locked_on.bmp')))
+
+# Город/сервис/склад
 service_button = cv2.imread(resource_path(os.path.join('images', 'service.bmp')))
 service_all_button = cv2.imread(resource_path(os.path.join('images', 'service_all.bmp')))
 take_all_button = cv2.imread(resource_path(os.path.join('images', 'take_all.bmp')))
 storage_button = cv2.imread(resource_path(os.path.join('images', 'storage.bmp')))
 all_to_storage_button = cv2.imread(resource_path(os.path.join('images', 'all_to_storage.bmp')))
-tunnel_img = cv2.imread(resource_path(os.path.join('images', 'tunnel.bmp')))
+storage_tab = cv2.imread(resource_path(os.path.join('images', 'storage_tab.png')))
+storage_search_box = cv2.imread(resource_path(os.path.join('images', 'storage_search_box.PNG')))
+buying_up_opened_button = cv2.imread(resource_path(os.path.join('images', 'buying_up_opened_button.PNG')))
+buying_up_closed_button = cv2.imread(resource_path(os.path.join('images', 'buying_up_closed_button.PNG')))
+
+# Тоннель
+# tunnel_img = cv2.imread(resource_path(os.path.join('images', 'tunnel.bmp')))
+tunnel_img = cv2.imread(resource_path(os.path.join('images', 'tunnel.png')), cv2.IMREAD_UNCHANGED)
 tunnel_window_title = cv2.imread(resource_path(os.path.join('images', 'tunnel_window_title.bmp')))
 tunnel_window_base_title = cv2.imread(resource_path(os.path.join('images', 'tunnel_window_base_title.bmp')))
 
+# Диалоги
 dialog_button = cv2.imread(resource_path(os.path.join('images', 'dialog_button.PNG')))
 dialog_option = cv2.imread(resource_path(os.path.join('images', 'dialog_option.png')))
 quest_dialog_option = cv2.imread(resource_path(os.path.join('images', 'quest_dialog_option.png')))
@@ -64,14 +75,28 @@ question_dialog_option = cv2.imread(resource_path(os.path.join('images', 'questi
 complete_dialog_option = cv2.imread(resource_path(os.path.join('images', 'complete_dialog_option.png')))
 close_dialog_option = cv2.imread(resource_path(os.path.join('images', 'close_dialog_option.png')))
 
+# Корабль/трюм
 ship_tab = cv2.imread(resource_path(os.path.join('images', 'ship_tab.PNG')))
 cargo_tab = cv2.imread(resource_path(os.path.join('images', 'cargo_tab.PNG')))
+equipment_tab = cv2.imread(resource_path(os.path.join('images', 'equipment_tab.bmp')))
+crew_title = cv2.imread(resource_path(os.path.join('images', 'crew_title.png')))
+tech_title = cv2.imread(resource_path(os.path.join('images', 'tech_title.png')))
+items_from_storage_title = cv2.imread(resource_path(os.path.join('images', 'items_from_storage_title.png')))
+equipment_search_box = cv2.imread(resource_path(os.path.join('images', 'equipment_search_box.png')))
 gasholder_low_charge_img = cv2.imread(resource_path(os.path.join('images', 'gasholder_low_charge.bmp')))
+gasholder_full_charge_img = cv2.imread(resource_path(os.path.join('images', 'gasholder_full_charge.png')))
 reload_button = cv2.imread(resource_path(os.path.join('images', 'reload.PNG')))
 chest_icon = cv2.imread(resource_path(os.path.join('images', 'chest.PNG')))
 black_chest_icon = cv2.imread(resource_path(os.path.join('images', 'black_chest.PNG')))
 drop_button = cv2.imread(resource_path(os.path.join('images', 'drop_button.PNG')))
 
+# Оружие
+properties_tab = cv2.imread(resource_path(os.path.join('images', 'properties_tab.PNG')))
+change_tab = cv2.imread(resource_path(os.path.join('images', 'change_tab.PNG')))
+manufacture_tab = cv2.imread(resource_path(os.path.join('images', 'manufacture_tab.PNG')))
+description_tab = cv2.imread(resource_path(os.path.join('images', 'description_tab.PNG')))
+
+# Действия с смертью и приглашением в группу
 to_city_button = cv2.imread(resource_path(os.path.join('images', 'to_city_button.PNG')))
 dead_title = cv2.imread(resource_path(os.path.join('images', 'your_ship_down.PNG')))
 pay_button = cv2.imread(resource_path(os.path.join('images', 'pay.png')))
@@ -83,6 +108,10 @@ pink_dandelion = cv2.imread(resource_path(os.path.join('images', 'pink_dandelion
 green_dandelion = cv2.imread(resource_path(os.path.join('images', 'green_dandelion.png')))
 orange_dandelion = cv2.imread(resource_path(os.path.join('images', 'orange_dandelion.png')))
 
+# Вихрь для пролета в небе
+vortex_img = cv2.imread(resource_path(os.path.join('images', 'vortex.PNG')))
+
+# Рыбалка
 fishing_spot = cv2.imread(resource_path(os.path.join('images', 'fishing_spot.png')))
 fishing_spot_eels = cv2.imread(resource_path(os.path.join('images', 'fishing_spot_eels.png')))
 catching_img = cv2.imread(resource_path(os.path.join('images', 'catching.png')))
@@ -91,18 +120,47 @@ pickup_img = cv2.imread(resource_path(os.path.join('images', 'pickup.png')))
 continue_img = cv2.imread(resource_path(os.path.join('images', 'continue_catching.png')))
 full_net_img = cv2.imread(resource_path(os.path.join('images', 'full_net.png')))
 
+# Дровосекорубство
+tree_image_base = cv2.imread(resource_path(os.path.join('images', 'tree_spot.png')))
+tree_image_orange = cv2.imread(resource_path(os.path.join('images', 'tree_spot_orange.png')))
+launch_saw_inactive_image = cv2.imread(resource_path(os.path.join('images', 'launch_saw_inactive_button.png')))
+launch_saw_active_image = cv2.imread(resource_path(os.path.join('images', 'launch_saw_active_button.png')))
+broken_saw_big_image = cv2.imread(resource_path(os.path.join('images', 'broken_saw_big.png')))
+not_broken_saw_big_image = cv2.imread(resource_path(os.path.join('images', 'not_broken_saw_big.png')))
+broken_saw_big_storage_image = cv2.imread(resource_path(os.path.join('images', 'broken_saw_big_storage.bmp')))
+
+# Вход в док и пролёт/залёт во что-то
+dock_button = cv2.imread(resource_path(os.path.join('images', 'dock_button.bmp')))
+fly_in_button = cv2.imread(resource_path(os.path.join('images', 'fly_in_button.PNG')))
+
+# Магазин
+buy_for_button = cv2.imread(resource_path(os.path.join('images', 'buy_for_button.bmp')))
+buy_saw_big_button = cv2.imread(resource_path(os.path.join('images', 'buy_saw_big_button.bmp')))
+shop_button = cv2.imread(resource_path(os.path.join('images', 'shop_button.bmp')))
+shop_equipment_button = cv2.imread(resource_path(os.path.join('images', 'shop_equipment_button.bmp')))
+exit_button = cv2.imread(resource_path(os.path.join('images', 'exit_button.bmp')))
+
+# Иконка босса
 boss = cv2.imread(resource_path(os.path.join('images', 'boss.png')))
 
 
 class Player:
     mode = 'Убийство мобов в зоне'
+    next_preset = None
+    check_state_in_city_before_farm = False
     warp_bias = 7
     target_bias = 3
     stuck_delay = 3
     stuck_difference = 1.5
-    rotation_thread = None
-    stop_rotation_event = None
     rotating = False
+    rotation_direction = None
+    rotation_angle = None
+    rotating_to = None
+    rotation_button_pressed = False
+    update_rotation_lock = Lock()
+    stop_rotate_event = Event()
+    rotation_stopped_event = Event()
+    rotation_thread = None
     direction_bias = 0.1
     radar_coords = (0, 0)
     target_coords = (0, 0)
@@ -130,14 +188,22 @@ class Player:
 
     farm_start_time = time.time()
     max_farm_time = 300
+    delay_between_farm_attempts = 0.3
 
     abilities = []
+    kill_enemies = True
+    spam_attack = False
+    spam_attack_stop_event = None
+    spam_attack_interval = 0.17
+    last_attack_time = 0
     enemy_types = []  # ['neutral', 'agressive', 'special']
     smart_targeting = True
     fire_when_smart_targeting = True
     do_drop_chests = True
     loot_on_fly = True
     do_looting = True
+    last_looting_time = 0
+    loot_distance = 30
     ignore_overweight = False
     stop_if_enemy_in_front_of_ship = True
     stop_at_destination = False
@@ -165,6 +231,10 @@ class Player:
     }
     fly_trough_tunnel_tries_amount = 5
 
+    action_timeout = 5
+    scale_in_out_radar_delay = 1
+    scaled_radar = False
+    scaled_value = 3
     radar_to_global_ratio = 10 / 90
     # cx = 1786.5
     cx = 1786.5 - 1920
@@ -174,6 +244,10 @@ class Player:
     w = 2.75
     wr = round(w + 2, 0)
     green_buff = 1.07
+    action_window = (-70, 360, -1, -1)
+
+    storage_filters_window = (-450, -170, -1, -100)
+    city_services_window = (-600, -80, -1, -1)
 
     press_esc_after_radar_action = False
     force_key = 'f'
@@ -183,20 +257,73 @@ class Player:
     forward_key = 'w'
     break_target_key = 'z'
     fire_key = ' '
+    inventory_key = 'i'
+    auto_use_all_key = '~'
+    radar_in_key = '[Ctrl]+'
+    radar_out_key = '[Ctrl]-'
+    activate_ability_1_key = '[Ctrl]1'
+    activate_ability_2_key = '[Ctrl]2'
+    activate_ability_3_key = '[Ctrl]3'
+    activate_ability_4_key = '[Ctrl]4'
+    activate_ability_5_key = '[Ctrl]5'
+    activate_ability_6_key = '[Ctrl]6'
+    activate_ability_7_key = '[Ctrl]7'
+    activate_ability_8_key = '[Ctrl]8'
+    activate_ability_9_key = '[Ctrl]9'
+    esc_key = win32con.VK_ESCAPE
+    enter_key = '\r'
 
     _ocr_reader = None
+
+    positioning_to_the_center = False
+
+    tunnel_detection_precision = .7
+    tunnel_approach_distance = 10
 
     fishing_spot_detection_precision = .65
     fishing_spot_approach_distance = 4
     fishing_spot_max_bad_fishing_tries = 1
 
+    tree_spot_detection_precision = .65
+    tree_spot_approach_distance = 4
+    tree_spot_max_bad_cutting_tries = 1
+    change_saw_after_no_looting_time = 30
+    additional_saw_amount = 3
+
+    dandelion_detection_precision = .85
+    dandelion_approach_distance = 10
+
+    vortex_detection_precision = .2
+    vortex_approach_distance = 10
+
     def __init__(self, clicker):
         self.clicker = clicker
 
+    def force_left(self):
+        self.clicker.keypress(self.force_left_key)
+
+    def force_right(self):
+        self.clicker.keypress(self.force_right_key)
+
+    def force_forward(self):
+        self.clicker.keypress(self.force_forward_key)
+
+    def move_forward(self, force=False):
+        if force:
+            self.clicker.keypress(self.force_key)
+        else:
+            self.clicker.keypress(self.forward_key)
+
+    def activate_ability(self, ability: int):
+        if type(ability) is int and 0 < ability < 10:
+            self.clicker.keypress(eval(f'self.activate_ability_{ability}_key'))
+            return True
+        return False
+
     def activate_abilities(self):
         for ability in self.abilities:
-            self.clicker.keypress(f'^{ability}')
-            time.sleep(.5)
+            if self.activate_ability(ability):
+                time.sleep(.5)
 
     @property
     def ocr_reader(self):
@@ -225,8 +352,8 @@ class Player:
         )
 
     def is_overweight(self):
-        self.clicker.screen_lookup(window=(-12, -42, -12, -42))
-        return all(self.clicker.pixel(-12, -42) == (255, 226, 229))
+        screen, offset = self.clicker.screen_lookup(window=(-12, -42, -12, -42))
+        return all(self.clicker.pixel(-12, -42, screen=screen, offset=offset) == (255, 226, 229))
 
     def is_farming(self):
         return time.time() - self.farm_start_time < self.max_farm_time and (self.ignore_overweight or not self.is_overweight())
@@ -271,68 +398,127 @@ class Player:
 
             return cross_count % 2 == 1
 
+    def service_all_for_dl(self):
+        service_coord = self.clicker.wait_for_image(
+            image=service_button, window=self.city_services_window, centers=True, timeout=self.action_timeout)
+        if service_coord:
+            print(datetime.datetime.now(), 'Сервис')
+            self.clicker.click(*service_coord)
+            service_all_coord = self.clicker.wait_for_image(image=service_all_button, threshold=.8,
+                                                            timeout=self.action_timeout, centers=True)
+            if service_all_coord:
+                print(datetime.datetime.now(), 'Зарядить всё')
+                self.clicker.click(*service_all_coord)
+                return True
+            else:
+                print(datetime.datetime.now(), 'Кнопка "Зарядить всё" не обнаружена')
+                return False
+        else:
+            print(datetime.datetime.now(), 'Кнопка "Сервис" не обнаружена')
+            return False
+
+    def open_storage(self):
+        screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
+        storage_coord = self.clicker.find_image(storage_button, centers=True, screen=screen, offset=offset)
+        if storage_coord:
+            self.clicker.click(*storage_coord)
+            storage_search_box_coord = self.clicker.wait_for_image(
+                image=storage_search_box, window=self.storage_filters_window, centers=True, timeout=self.action_timeout)
+            if storage_search_box_coord:
+                print(datetime.datetime.now(), 'Склад открыт')
+                return True
+            else:
+                print(datetime.datetime.now(), 'Склад не открыт')
+                return False
+        else:
+            screen, offset = self.clicker.screen_lookup()
+            storage_search_box_coord = self.clicker.find_image(
+                image=storage_search_box, window=self.storage_filters_window, centers=True, screen=screen, offset=offset)
+            if storage_search_box_coord:
+                print(datetime.datetime.now(), 'Склад открыт')
+                return True
+
+            print(datetime.datetime.now(), 'Кнопка "Склад" не обнаружена')
+            return False
+
+    def toggle_buying_up(self, state):
+        screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
+        buying_up_opened_button_coord = self.clicker.find_image(buying_up_opened_button, centers=True, threshold=0.99,
+                                                                screen=screen, offset=offset)
+        buying_up_closed_button_coord = self.clicker.find_image(buying_up_closed_button, centers=True, threshold=0.99,
+                                                                screen=screen, offset=offset)
+        if (buying_up_opened_button_coord and state) or (buying_up_opened_button_coord is None and not state):
+            return True
+
+        if state and buying_up_closed_button_coord:
+            self.clicker.click(*buying_up_closed_button_coord)
+            print(datetime.datetime.now(), "Открыта скупка")
+            return True
+        elif not state and buying_up_opened_button_coord:
+            self.clicker.click(*buying_up_opened_button_coord)
+            print(datetime.datetime.now(), "Закрыта скупка")
+            return True
+        else:
+            print(datetime.datetime.now(), "Кнопка скупки не найдена")
+            return False
+
+    def exit(self):
+        screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
+        exit_coord = self.clicker.find_image(exit_button, centers=True, screen=screen, offset=offset)
+        if exit_coord is not None:
+            self.clicker.move_and_click(*exit_coord)
+            return True
+        return False
+
+    def store_resources_to_storage(self):
+        if not self.open_storage():
+            return False
+
+        screen, offset = self.clicker.screen_lookup()
+        store_all = self.clicker.find_image(image=all_to_storage_button, threshold=.99, centers=True,
+                                            screen=screen, offset=offset)
+        if store_all:
+            print(datetime.datetime.now(), 'Всё на склад')
+            self.clicker.click(*store_all)
+            time.sleep(1)
+            self.exit()
+            return True
+        else:
+            print(datetime.datetime.now(), 'Кнопка "Всё на склад" не обнаружена')
+            self.exit()
+            return False
+
     def store_resources_and_service(self):
         # Сервис
-        self.clicker.screen_lookup(window=(-600, -75, -1, -1))
-        service = self.clicker.find_image(service_button, threshold=.99)
-        print(datetime.datetime.now(), 'Сервис')
-        if service:
-            self.clicker.click(*service[0])
-        time.sleep(2)
-        self.clicker.screen_lookup()
-        service_all = self.clicker.find_image(service_all_button, threshold=.8)
-        print(datetime.datetime.now(), 'Зарядить всё')
-        if service_all:
-            self.clicker.click(*service_all[0])
-        time.sleep(2)
+        if self.service_all_for_dl():
+            time.sleep(2)
         # Склад
-        self.clicker.screen_lookup(window=(-600, -75, -1, -1))
-        storage = self.clicker.find_image(storage_button, threshold=.99)
-        print(datetime.datetime.now(), 'Склад')
-        if storage:
-            self.clicker.click(*storage[0])
-        time.sleep(2)
-        self.clicker.screen_lookup(window=(0, -150, -1, -1))
-        store_all = self.clicker.find_image(all_to_storage_button, threshold=.99)
-        print(datetime.datetime.now(), 'Всё на склад')
-        if store_all:
-            self.clicker.click(*store_all[0])
+        self.store_resources_to_storage()
 
     def reload_gasholders(self):
-        self.clicker.screen_lookup()
-        ship_tab_coord = next(iter(self.clicker.find_image(ship_tab)), None)
-        if ship_tab_coord is not None:
-            self.clicker.click(*ship_tab_coord)
-        else:
-            self.clicker.keypress('i')
-            time.sleep(1)
+        print(datetime.datetime.now(), "Зарядка газгольдеров")
+        if not self.open_ship():
+            return False
 
-            self.clicker.screen_lookup()
-            ship_tab_coord = next(iter(self.clicker.find_image(ship_tab)), None)
-            if ship_tab_coord is not None:
-                self.clicker.click(*ship_tab_coord)
-                time.sleep(1)
-                self.clicker.screen_lookup()
-            else:
-                return False
-
-        gasholder_low_charge = next(iter(self.clicker.find_image(gasholder_low_charge_img)), None)
-        while gasholder_low_charge is not None:
-            self.clicker.click(*gasholder_low_charge)
-            time.sleep(1)
-            self.clicker.screen_lookup()
-            gasholder_low_charge = next(iter(self.clicker.find_image(gasholder_low_charge_img)), None)
-            self.clicker.click(gasholder_low_charge[0] + 20, gasholder_low_charge[1] + 70)  # Открыть окно газгольдера
-            time.sleep(1)
-            self.clicker.screen_lookup()
-            reload_coord = self.clicker.find_image(reload_button, threshold=.8)[0]
+        screen, offset = self.clicker.screen_lookup()
+        gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
+        while gasholder_low_charge_coord is not None:
+            self.clicker.click(*gasholder_low_charge_coord)
+            self.clicker.wait_for_image(properties_tab, timeout=self.action_timeout)
+            screen, offset = self.clicker.screen_lookup()
+            gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
+            self.clicker.click(gasholder_low_charge_coord[0] + 20, gasholder_low_charge_coord[1] + 70)  # Открыть окно газгольдера
+            reload_coord = self.clicker.wait_for_image(reload_button, threshold=.8, timeout=self.action_timeout)
             self.clicker.click(*reload_coord)  # Перезарядить
+            print(datetime.datetime.now(), "Заряжен газгольдер")
             time.sleep(1)
             self.clicker.click(reload_coord[0] + 180, reload_coord[1] - 320)  # Закрытие окна газгольдера
             self.clicker.keypress(win32con.VK_ESCAPE)  # Закрытие окна оружия
             time.sleep(1)
-            self.clicker.screen_lookup()
-            gasholder_low_charge = next(iter(self.clicker.find_image(gasholder_low_charge_img)), None)
+            screen, offset = self.clicker.screen_lookup()
+            gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
+
+        print(datetime.datetime.now(), "Газгольдеры заряжены")
 
         return True
 
@@ -341,8 +527,8 @@ class Player:
         self.enemy_focused = False
 
     def is_locked_on_enemy(self):
-        self.clicker.screen_lookup(window=(400, 0, -325, 100))
-        if self.clicker.find_image(enemy_locked_on, threshold=.99):
+        screen, offset = self.clicker.screen_lookup(window=(400, 0, -325, 100))
+        if self.clicker.find_image(enemy_locked_on, threshold=.99, screen=screen, offset=offset):
             self.enemy_focused = True
             return self.enemy_focused
         else:
@@ -353,7 +539,7 @@ class Player:
         if not self.enemy_types:
             return []
         # start = time.time()
-        self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
         neutral_enemies = []
         if 'neutral' in self.enemy_types:
             enemy_replace_pixels = 5
@@ -367,24 +553,25 @@ class Player:
             #     )
             #     neutral_enemy = self.clicker.find_pixel(color=(221, 221, 221))
 
-            neutral_enemies = self.clicker.find_pixels(color=(221, 221, 221), min_dist=enemy_replace_pixels + 1)
+            neutral_enemies = self.clicker.find_pixels(color=(221, 221, 221), min_dist=enemy_replace_pixels + 1, screen=screen, offset=offset)
             neutral_enemies = [(enemy_coord[0] + 1, enemy_coord[1] + 1) for enemy_coord in neutral_enemies]
 
         aggressive_enemies = []
         if 'agressive' in self.enemy_types:
             enemy_replace_pixels = 5
-            aggressive_enemy = self.clicker.find_pixel(color=(255, 0, 0))
+            aggressive_enemy = self.clicker.find_pixel(color=(255, 0, 0), screen=screen, offset=offset)
             while aggressive_enemy:
                 if math.dist(aggressive_enemy, self.center) < 90:
-                    pxl = self.clicker.pixel(aggressive_enemy[0] - 1, aggressive_enemy[1])
+                    pxl = self.clicker.pixel(aggressive_enemy[0] - 1, aggressive_enemy[1], screen=screen, offset=offset)
                     if pxl[1] == pxl[2] and abs(pxl[0] + pxl[1] * 5) % 255 < pxl[1]:
                         aggressive_enemies.append(aggressive_enemy)
                 self.clicker.fill(
                     window=(aggressive_enemy[0] - enemy_replace_pixels, aggressive_enemy[1] - enemy_replace_pixels,
                             aggressive_enemy[0] + enemy_replace_pixels, aggressive_enemy[1] + enemy_replace_pixels),
-                    color=(0, 0, 0)
+                    color=(0, 0, 0),
+                    screen=screen, offset=offset
                 )
-                aggressive_enemy = self.clicker.find_pixel(color=(255, 0, 0))
+                aggressive_enemy = self.clicker.find_pixel(color=(255, 0, 0), screen=screen, offset=offset)
 
             aggressive_enemies = [(enemy_coord[0], enemy_coord[1] + 2) for enemy_coord in aggressive_enemies]
 
@@ -401,13 +588,13 @@ class Player:
             #     )
             #     special_enemy = self.clicker.find_pixel(color=(139, 0, 255))
 
-            special_enemies = self.clicker.find_pixels(color=(139, 0, 255), min_dist=enemy_replace_pixels + 1)
+            special_enemies = self.clicker.find_pixels(color=(139, 0, 255), min_dist=enemy_replace_pixels + 1, screen=screen, offset=offset)
             special_enemies = [(enemy_coord[0] + 1, enemy_coord[1] + 2) for enemy_coord in special_enemies]
 
         bosses = []
         if 'boss' in self.enemy_types:
-            self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-            bosses = self.clicker.find_image(boss, min_dist=10, threshold=.8, centers=True)
+            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+            bosses = self.clicker.find_images(boss, min_dist=10, threshold=.8, centers=True, screen=screen, offset=offset)
 
         enemies = neutral_enemies + aggressive_enemies + special_enemies + bosses
 
@@ -417,15 +604,15 @@ class Player:
         # print(time.time() - start)
         # for index, enemy in enumerate(enemies):
         #     self.clicker.fill(window=(*enemy, *enemy),
-        #                  color=(255 - int(255 / len(enemies)) * index, 0, 0))
-        # cv2.imwrite('screen.png', self.clicker.screen)
-        return enemies
+        #                  color=(255 - int(255 / len(enemies)) * index, 0, 0), screen=screen, offset=offset)
+        # cv2.imwrite('screen.png', screen)
+        return enemies, screen, offset
 
-    def is_enemy_valid(self, enemy_coord):
+    def is_enemy_valid(self, enemy_coord, screen=None, offset=None):
         # Проверка, что цель не находится за границей зоны фарма
         enemy_global_coord = (
-            (enemy_coord[0] - self.center[0]) * self.radar_to_global_ratio + self.radar_coords[0],
-            (enemy_coord[1] - self.center[1]) * self.radar_to_global_ratio + self.radar_coords[1]
+            (enemy_coord[0] - self.center[0]) * self.radar_to_global_ratio / (self.scaled_value if self.scaled_radar else 1) + self.radar_coords[0],
+            (enemy_coord[1] - self.center[1]) * self.radar_to_global_ratio / (self.scaled_value if self.scaled_radar else 1) + self.radar_coords[1]
         )
         if not self.in_area(enemy_global_coord):
             return False
@@ -442,11 +629,16 @@ class Player:
             (enemy_coord[1] - self.center[1]) / distance_to_enemy
         )
         cos_enemy_city = np.dot(self.area_direction, enemy_direction)
+
         if distance_to_enemy > 20 and cos_enemy_city > 0:
+            if screen is None or offset is None:
+                screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+
             for pixel_index in range(4, int(distance_to_enemy) - 10, 1):
                 outer_target_pixel = self.clicker.pixel(
                     enemy_coord[0] - int(enemy_direction[0] * pixel_index),
-                    enemy_coord[1] - int(enemy_direction[1] * pixel_index)
+                    enemy_coord[1] - int(enemy_direction[1] * pixel_index),
+                    screen=screen, offset=offset
                 )
                 if all(outer_target_pixel != (0, 0, 0)):
                     pixel_is_city = (
@@ -458,7 +650,25 @@ class Player:
                         return False
         return True
 
+    def start_spam_attack(self):
+        def spam_attack(stop_event):
+            while not stop_event.is_set():
+                self.clicker.keypress(self.fire_key)
+                time.sleep(self.spam_attack_interval)
+
+        if self.spam_attack and self.spam_attack_stop_event is None:
+            self.spam_attack_stop_event = Event()
+            Thread(target=spam_attack, args=(self.spam_attack_stop_event, ), daemon=True).start()
+
+    def stop_spam_attack(self):
+        if self.spam_attack and self.spam_attack_stop_event is not None:
+            self.spam_attack_stop_event.set()
+            self.spam_attack_stop_event = None
+
     def target_and_kill(self):
+        if not self.kill_enemies or self.spam_attack:
+            return False
+
         last_focus_state = self.enemy_focused
         locked_on_enemy = self.is_locked_on_enemy()
 
@@ -476,9 +686,9 @@ class Player:
         if not locked_on_enemy:
             self.lookup_coords()
             self.lookup_direction()
-            enemy_coords = self.locate_enemies()
+            enemy_coords, screen, offset = self.locate_enemies()
             for enemy_coord in enemy_coords:
-                if self.is_enemy_valid(enemy_coord):
+                if self.is_enemy_valid(enemy_coord, screen=screen, offset=offset):
                     target_enemy = True
                     if self.smart_targeting:
                         self.clicker.move(*enemy_coord)
@@ -487,51 +697,58 @@ class Player:
                         time.sleep(.01)
                     else:
                         self.clicker.keypress(self.fire_key)
+                        self.last_attack_time = time.time()
                     break
 
             if jump:
                 self.clicker.keypress(self.force_forward_key)
 
-            if self.press_esc_after_radar_action:
+            if self.press_esc_after_radar_action and self.smart_targeting and enemy_coords:
                 self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
-            self.clicker.dblclick(0, 0)  # Чтобы убрать курсор с радара и ускориться
 
+            self.clicker.dblclick(0, 0)  # Чтобы убрать курсор с радара и ускориться
         else:
             self.in_combat = True
             if self.smart_targeting:
                 if self.fire_when_smart_targeting:
-                    enemy_pixels = self.locate_enemies()
-                    if not enemy_pixels or math.dist(enemy_pixels[0], self.center) < 30:
+                    enemy_coords, screen, offset = self.locate_enemies()
+                    if not enemy_coords or math.dist(enemy_coords[0], self.center) < 30:
                         self.clicker.keypress(self.fire_key)
+                        self.last_attack_time = time.time()
             else:
                 self.clicker.keypress(self.fire_key)
+                self.last_attack_time = time.time()
 
         return locked_on_enemy or target_enemy
 
     def locate_loot(self):
         loot = []
         loot_replace_radius = 4
-        self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
         replace_color = (0, 0, 0)
         # locate loot
-        loot_pixel = self.clicker.find_pixel(color=(255, 229, 0))
+        loot_pixel = self.clicker.find_pixel(color=(255, 229, 0), screen=screen, offset=offset)
         while loot_pixel:
             coord_to_click = (loot_pixel[0], loot_pixel[1] + 2)
             loot.append(coord_to_click)
             self.clicker.fill(
                 window=(coord_to_click[0] - loot_replace_radius, coord_to_click[1] - loot_replace_radius,
                         coord_to_click[0] + loot_replace_radius, coord_to_click[1] + loot_replace_radius),
-                color=replace_color
+                color=replace_color,
+                screen=screen, offset=offset
             )
-            loot_pixel = self.clicker.find_pixel(color=(255, 229, 0))
+            loot_pixel = self.clicker.find_pixel(color=(255, 229, 0), screen=screen, offset=offset)
 
         return loot
 
     def loot(self):
+        if not self.do_looting:
+            return False
+
         # locate loot
         looting = False  # loot_pixel is not None
         for coord_to_click in self.locate_loot():
-            if math.dist(coord_to_click, self.center) < 30:
+            if math.dist(coord_to_click, self.center) < self.loot_distance:
                 looting = True
                 self.clicker.move(*coord_to_click)
                 time.sleep(.01)
@@ -539,11 +756,11 @@ class Player:
                 time.sleep(.01)
 
         if looting:
-            self.clicker.screen_lookup()
-            take_all_coord = self.clicker.find_image(take_all_button, threshold=.99)
+            screen, offset = self.clicker.screen_lookup()
+            take_all_coord = self.clicker.find_image(take_all_button, threshold=.99, screen=screen, offset=offset)
             if take_all_coord:
                 print(datetime.datetime.now(), 'Взять всё')
-                self.clicker.click(*take_all_coord[0])
+                self.clicker.click(*take_all_coord)
                 time.sleep(.3)
                 if self.is_locked_on_enemy():
                     self.in_combat = True
@@ -552,13 +769,16 @@ class Player:
             self.clicker.move(0, 0)  # Чтобы убрать курсор с радара
             if self.press_esc_after_radar_action:
                 self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
+
+            self.last_looting_time = time.time()
+
         return looting
 
     def lookup_coords(self):
-        self.clicker.screen_lookup(binary=True, window=(-149, 209, -117, 213))
+        screen, offset = self.clicker.screen_lookup(binary=True, window=(-149, 209, -117, 213))
         result_coords = list()
         for key, image in coord_imgs.items():
-            result_coords.extend((coord[0], key) for coord in self.clicker.find_image(image, threshold=.99))
+            result_coords.extend((coord[0], key) for coord in self.clicker.find_images(image, threshold=.99, screen=screen, offset=offset))
         coords_str = ''.join(map(lambda coord_value: coord_value[1], sorted(result_coords, key=lambda x: x[0])))
         self.radar_coords = tuple(map(int, coords_str.split(':')))
         self.distance_to_area = math.dist(self.radar_coords, self.area_coords)
@@ -577,7 +797,7 @@ class Player:
 
         if self.target_distance != 0:
             self.target_direction = ((self.target_coords[0] - self.radar_coords[0]) / self.target_distance,
-                                (self.target_coords[1] - self.radar_coords[1]) / self.target_distance)
+                                     (self.target_coords[1] - self.radar_coords[1]) / self.target_distance)
 
             asin = math.asin(self.target_direction[1])
             if asin == 0:
@@ -588,8 +808,61 @@ class Player:
             self.target_angle = (math.acos(self.target_direction[0]) * 180 / math.pi) * -asin_coef + 180 * (1 + asin_coef)
 
     def lookup_direction(self):
-        self.clicker.screen_lookup(window=(-141, 99, -126, 114))
-        # cv2.imwrite('screen.png', self.clicker.screen)
+        screen, offset = self.clicker.screen_lookup(window=(-135, 105, -132, 108))
+        dir_view = screen#[6:10, 6:10]
+        dir_view[1:-1, 1:-1] = np.array([0, 0, 0])
+        dir_idx = np.unravel_index(np.argmax(dir_view[:, :, 1]), dir_view[:, :, 1].shape)
+        left_idx, right_idx = {
+            (0, 0): lambda: ((1, 0), (0, 1)),
+            (0, 1): lambda: ((0, 0), (0, 2)),
+            (0, 2): lambda: ((0, 1), (0, 3)),
+            (0, 3): lambda: ((0, 2), (1, 3)),
+            (1, 3): lambda: ((0, 3), (2, 3)),
+            (2, 3): lambda: ((1, 3), (3, 3)),
+            (3, 3): lambda: ((2, 3), (3, 2)),
+            (3, 2): lambda: ((3, 3), (3, 1)),
+            (3, 1): lambda: ((3, 2), (3, 0)),
+            (3, 0): lambda: ((3, 1), (2, 0)),
+            (2, 0): lambda: ((3, 0), (1, 0)),
+            (1, 0): lambda: ((2, 0), (0, 0)),
+        }[dir_idx]()
+        left_pixel = dir_view[left_idx]
+        dir_pixel = dir_view[dir_idx]
+        right_pixel = dir_view[right_idx]
+
+        left_border = [float((int(a) + int(b) - 3)) for a, b in zip(left_idx, dir_idx)]
+        right_border = [float((int(a) + int(b) - 3)) for a, b in zip(dir_idx, right_idx)]
+
+        left_value = int(dir_pixel[1]) - int(left_pixel[1])
+        right_value = int(dir_pixel[1]) - int(right_pixel[1])
+        total_value = left_value + right_value
+        tdir = (
+            (left_border[0] * (total_value - left_value) + right_border[0] * (total_value - right_value)) / total_value,
+            (left_border[1] * (total_value - left_value) + right_border[1] * (total_value - right_value)) / total_value
+        )
+        tdir_len = pow(tdir[0] ** 2 + tdir[1] ** 2, .5)
+        tdir = (tdir[0] / tdir_len, tdir[1] / tdir_len)[::-1]
+
+        asin = math.asin(tdir[1])
+        if asin == 0:
+            asin_coef = -1
+        else:
+            asin_coef = asin / abs(asin)
+
+        t_angle = (math.acos(tdir[0]) * 180 / math.pi) * -asin_coef + 180 * (1 + asin_coef)
+
+        self.player_direction = tdir
+        self.player_angle = t_angle
+        self.player_direction_certain = True
+
+        # dir_view[left_idx] = np.array([0, 0, 255])
+        # dir_view[dir_idx] = np.array([255, 0, 0])
+        # dir_view[right_idx] = np.array([255, 0, 255])
+        # self.shower.display(dir_view)
+        return
+        screen, offset = self.clicker.screen_lookup(window=(-141, 99, -126, 114))
+
+        # cv2.imwrite('screen.png', screen)
         coords_index_offset = 5
         coords_to_check = [(-127, 106), (-127, 107), (-127, 108), (-127, 109), (-127, 110), (-128, 110), (-128, 111), (-129, 111), (-129, 112), (-130, 112), (-130, 113), (-131, 113), (-132, 113), (-133, 113), (-134, 113), (-135, 113), (-136, 113), (-137, 113), (-137, 112), (-138, 112), (-138, 111), (-139, 111), (-139, 110), (-140, 110), (-140, 109), (-140, 108), (-140, 107), (-140, 106), (-140, 105), (-140, 104), (-140, 103), (-139, 103), (-139, 102), (-138, 102), (-138, 101), (-137, 101), (-137, 100), (-136, 100), (-135, 100), (-134, 100), (-133, 100), (-132, 100), (-131, 100), (-130, 100), (-130, 101), (-129, 101), (-129, 102), (-128, 102), (-128, 103), (-127, 103), (-127, 104), (-127, 105)]
         coords_to_check = coords_to_check[-coords_index_offset:] + coords_to_check
@@ -601,22 +874,22 @@ class Player:
                 do_skip -= 1
                 continue
 
-            pixel = self.clicker.pixel(*coords_to_check[i])
+            pixel = self.clicker.pixel(*coords_to_check[i], screen=screen, offset=offset)
             if (pixel[1] > pixel[0] * self.green_buff and pixel[1] > pixel[2]
                     and math.dist(pixel, (223, 247, 180)) > 30):
                 continues_pixels = [i]
                 for j in range(i + 1, min(i + coords_index_offset, len(coords_to_check))):
                     coord = coords_to_check[j]
-                    pixel = self.clicker.pixel(*coord)
+                    pixel = self.clicker.pixel(*coord, screen=screen, offset=offset)
                     if (pixel[1] > pixel[0] * self.green_buff and pixel[1] > pixel[2]
                             and math.dist(pixel, (223, 247, 180)) > 30):
                         continues_pixels.append(j)
-                        # self.clicker.fill(window=(coord[0], coord[1], coord[0], coord[1]), color=(0, 0, 255))
+                        # self.clicker.fill(window=(coord[0], coord[1], coord[0], coord[1]), color=(0, 0, 255), screen=screen, offset=offset)
                 if continues_pixels[-1] > coords_index_offset:
                     pixel_index = continues_pixels[int(len(continues_pixels) / 2)]
                     coord = coords_to_check[pixel_index]
-                    self.clicker.fill(window=(coord[0] - self.wr, coord[1] - self.wr, coord[0] + self.wr, coord[1] + self.wr), color=(0, 0, 0))
-                    self.clicker.fill(window=(coord[0], coord[1], coord[0], coord[1]), color=(0, 0, 255))
+                    self.clicker.fill(window=(coord[0] - self.wr, coord[1] - self.wr, coord[0] + self.wr, coord[1] + self.wr), color=(0, 0, 0), screen=screen, offset=offset)
+                    self.clicker.fill(window=(coord[0], coord[1], coord[0], coord[1]), color=(0, 0, 255), screen=screen, offset=offset)
                     person_borders.append(coord)
                     do_skip = skip_on_find
 
@@ -644,128 +917,147 @@ class Player:
             self.player_direction_certain = True
             # print(self.player_angle)
             # if last_angle > self.player_angle and last_angle < 350:
-            #     cv2.imwrite('screen.png', self.clicker.screen)
+            #     cv2.imwrite('screen.png', screen)
             #     self.clicker.keypress(self.fire_key)
             #     raise SystemExit(0)
         else:
             self.player_direction_certain = False
             # print(person_borders)
-            # cv2.imwrite('screen.png', self.clicker.screen)
+            # cv2.imwrite('screen.png', screen)
             # self.clicker.keypress(self.fire_key)
             # raise SystemExit(0)
 
-    def rotate_to_radar(self, point, sync=True):
+    def rotate_to_direction(self, direction, angle=None, sync=True):
         def rotate():
-            self.lookup_direction()
-            rotate_to = None
+            try:
+                self.lookup_direction()
+            except Exception:
+                self.rotating = False
+                return
+
             rotation_timeout = 1
             last_player_direction = self.player_direction
 
-            point_distance = math.dist(self.center, point)
-            point_direction = ((point[0] - self.center[0]) / point_distance,
-                               (point[1] - self.center[1]) / point_distance)
-            asin = math.asin(point_direction[1])
-            if asin == 0:
-                asin_coef = -1
-            else:
-                asin_coef = asin / abs(asin)
-            point_angle = (math.acos(point_direction[0]) * 180 / math.pi) * -asin_coef + 180 * (1 + asin_coef)
-
             rotation_time = time.time()
 
-            while (math.dist(self.player_direction, point_direction) > self.direction_bias
-                   and self.player_direction_certain and time.time() - rotation_time < rotation_timeout):
-                if ((0 < self.player_angle - point_angle < 180)
-                        or (0 < self.player_angle + 360 - point_angle < 180)):
-                    if rotate_to == 'left':
+            while self.rotating:
+                with self.update_rotation_lock:
+                    self.rotating = (not self.stop_rotate_event.is_set()
+                                     and math.dist(self.player_direction, self.rotation_direction) > self.direction_bias
+                                     and self.player_direction_certain
+                                     and time.time() - rotation_time < rotation_timeout)
+
+                    if not self.rotating:
+                        if time.time() - rotation_time >= rotation_timeout:
+                            print(datetime.datetime.now(), 'Залип поворот')
+                            self.clicker.reset_keyboard()
+                        #     self.clicker.keypress(win32con.VK_LEFT)
+                        #     self.clicker.keypress(win32con.VK_RIGHT)
+                        # else:
+                        #     self.clicker.keyup(win32con.VK_LEFT)
+                        #     self.clicker.keyup(win32con.VK_RIGHT)
+                        if self.rotation_button_pressed:
+                            self.clicker.keypress(win32con.VK_LEFT)
+                            self.clicker.keypress(win32con.VK_RIGHT)
+
+                        self.rotation_button_pressed = False
+                        self.rotating_to = None
+                        self.stop_rotate_event.clear()
+                        self.rotation_stopped_event.set()
                         break
-                    self.rotating = True
-                    self.clicker.keyup(win32con.VK_LEFT)
-                    self.clicker.keydown(win32con.VK_RIGHT)
-                    rotate_to = 'right'
-                    if self.player_direction != last_player_direction:
-                        last_player_direction = self.player_direction
-                        rotation_time = time.time()
-                else:
-                    if rotate_to == 'right':
-                        break
-                    self.rotating = True
-                    self.clicker.keyup(win32con.VK_RIGHT)
-                    self.clicker.keydown(win32con.VK_LEFT)
-                    rotate_to = 'left'
-                    if self.player_direction != last_player_direction:
-                        last_player_direction = self.player_direction
-                        rotation_time = time.time()
+
+                    if ((0 < self.player_angle - self.rotation_angle < 180)
+                            or (0 < self.player_angle + 360 - self.rotation_angle < 180)):
+                        if self.rotating_to == 'left':
+                            # self.clicker.keyup(win32con.VK_LEFT)
+                            # self.clicker.keyup(win32con.VK_RIGHT)
+                            self.clicker.keypress(win32con.VK_LEFT)
+                            self.clicker.keypress(win32con.VK_RIGHT)
+                            self.rotation_button_pressed = False
+                            self.rotating_to = None
+                            self.rotating = False
+                            self.stop_rotate_event.clear()
+                            self.rotation_stopped_event.set()
+                            break
+                        self.clicker.keyup(win32con.VK_LEFT)
+                        self.clicker.keydown(win32con.VK_RIGHT)
+                        self.rotation_button_pressed = True
+                        self.rotating_to = 'right'
+                    else:
+                        if self.rotating_to == 'right':
+                            # self.clicker.keyup(win32con.VK_LEFT)
+                            # self.clicker.keyup(win32con.VK_RIGHT)
+                            self.clicker.keypress(win32con.VK_LEFT)
+                            self.clicker.keypress(win32con.VK_RIGHT)
+                            self.rotation_button_pressed = False
+                            self.rotating_to = None
+                            self.rotating = False
+                            self.stop_rotate_event.clear()
+                            self.rotation_stopped_event.set()
+                            break
+                        self.clicker.keyup(win32con.VK_RIGHT)
+                        self.clicker.keydown(win32con.VK_LEFT)
+                        self.rotation_button_pressed = True
+                        self.rotating_to = 'left'
+
+                if self.player_direction != last_player_direction:
+                    last_player_direction = self.player_direction
+                    rotation_time = time.time()
+
                 time.sleep(0.05)
-                self.lookup_direction()
+                try:
+                    self.lookup_direction()
+                except Exception:
+                    self.clicker.keypress(win32con.VK_LEFT)
+                    self.clicker.keypress(win32con.VK_RIGHT)
+                    self.rotation_button_pressed = False
+                    self.rotating_to = None
+                    self.rotating = False
+                    self.stop_rotate_event.clear()
+                    self.rotation_stopped_event.set()
+                    break
 
-            if time.time() - rotation_time >= rotation_timeout:
-                print(datetime.datetime.now(), 'Залип поворот')
-                self.clicker.reset_keyboard()
-                self.clicker.keypress(win32con.VK_LEFT)
-                self.clicker.keypress(win32con.VK_RIGHT)
-            else:
-                self.clicker.keyup(win32con.VK_LEFT)
-                self.clicker.keyup(win32con.VK_RIGHT)
+        with self.update_rotation_lock:
+            self.rotating_to = None
+            self.rotation_direction = direction
+            if angle is None:
+                asin = math.asin(direction[1])
+                if asin == 0:
+                    asin_coef = -1
+                else:
+                    asin_coef = asin / abs(asin)
+                angle = (math.acos(direction[0]) * 180 / math.pi) * -asin_coef + 180 * (1 + asin_coef)
+            self.rotation_angle = angle
+            self.stop_rotate_event.clear()
+            self.rotation_stopped_event.clear()
 
-            self.rotating = False
-            self.stop_rotation_event = None
-            self.rotation_thread = None
+        if not self.rotating:
+            self.rotating = True
+            self.rotation_thread = Thread(target=rotate, daemon=True)
+            self.rotation_thread.start()
 
-        self.rotation_thread = Thread(target=rotate)
-        self.rotation_thread.start()
-        self.rotation_thread.join()
+        if sync:
+            self.rotation_thread.join()
+
+    def stop_rotation(self):
+        if not self.rotation_stopped_event.is_set():
+            self.stop_rotate_event.set()
+            self.rotation_stopped_event.wait()
+
+    def rotate_to_radar(self, point=None, image=None, threshold=.85, sync=True):
+        if image is not None:
+            coords = self.locate(image=image, threshold=threshold)
+            if not coords:
+                return False
+            point = min(coords, key=lambda x: math.dist(x, self.center))
+
+        point_distance = math.dist(self.center, point)
+        point_direction = ((point[0] - self.center[0]) / point_distance,
+                           (point[1] - self.center[1]) / point_distance)
+        self.rotate_to_direction(direction=point_direction, sync=sync)
 
     def rotate_to_target(self, sync=True):
-        def rotate():
-            self.lookup_direction()
-            rotate_to = None
-            rotation_timeout = 1
-            last_player_direction = self.player_direction
-            rotation_time = time.time()
-
-            while (math.dist(self.player_direction, self.target_direction) > self.direction_bias
-                   and self.player_direction_certain and time.time() - rotation_time < rotation_timeout):
-                if ((0 < self.player_angle - self.target_angle < 180)
-                        or (0 < self.player_angle + 360 - self.target_angle < 180)):
-                    if rotate_to == 'left':
-                        break
-                    self.rotating = True
-                    self.clicker.keyup(win32con.VK_LEFT)
-                    self.clicker.keydown(win32con.VK_RIGHT)
-                    rotate_to = 'right'
-                    if self.player_direction != last_player_direction:
-                        last_player_direction = self.player_direction
-                        rotation_time = time.time()
-                else:
-                    if rotate_to == 'right':
-                        break
-                    self.rotating = True
-                    self.clicker.keyup(win32con.VK_RIGHT)
-                    self.clicker.keydown(win32con.VK_LEFT)
-                    rotate_to = 'left'
-                    if self.player_direction != last_player_direction:
-                        last_player_direction = self.player_direction
-                        rotation_time = time.time()
-                time.sleep(0.05)
-                self.lookup_direction()
-
-            if time.time() - rotation_time >= rotation_timeout:
-                print(datetime.datetime.now(), 'Залип поворот')
-                self.clicker.reset_keyboard()
-                self.clicker.keypress(win32con.VK_LEFT)
-                self.clicker.keypress(win32con.VK_RIGHT)
-            else:
-                self.clicker.keyup(win32con.VK_LEFT)
-                self.clicker.keyup(win32con.VK_RIGHT)
-
-            self.rotating = False
-            self.stop_rotation_event = None
-            self.rotation_thread = None
-
-        self.rotation_thread = Thread(target=rotate)
-        self.rotation_thread.start()
-        self.rotation_thread.join()
+        self.rotate_to_direction(self.target_direction, angle=self.target_angle, sync=sync)
 
     def wait_for_warp(self):
         self.lookup_coords()
@@ -786,6 +1078,30 @@ class Player:
             last_player_coord = self.radar_coords
             time.sleep(1)
 
+    def fly_through_vortex(self):
+        if not self.approach(vortex_img, threshold=self.vortex_detection_precision,
+                             # stop_action_image=fly_in_button,
+                             stop_distance_diff=4,
+                             distance=self.vortex_approach_distance):
+            return False
+
+        screen, offset = self.clicker.screen_lookup()
+        fly_in_button_coord = self.clicker.find_image(fly_in_button, screen=screen, offset=offset, centers=True)
+        if fly_in_button_coord is not None:
+            print(datetime.datetime.now(), "Перелет через вихрь")
+            self.clicker.click(*fly_in_button_coord)
+            return True
+        else:
+            print(datetime.datetime.now(), "Кнопка перелета через вихрь не была найдена")
+            vortex_coord = self.locate(vortex_img, threshold=self.vortex_detection_precision)
+            vortex_coord = min(vortex_coord, key=lambda x: math.dist(x, self.center)) if vortex_coord else None
+            if vortex_coord is not None:
+                self.clicker.click(*vortex_coord)
+                return True
+            else:
+                print(datetime.datetime.now(), "Вихрь не был найден")
+                return False
+
     def fly_to(self, x, y,
                mode=None,
                rotate_first=False,
@@ -796,14 +1112,14 @@ class Player:
         if mode is not None:
             if mode == 'Переход между лабиринтами':
                 target_bias = -1
-                stop_at_destination = True
+                stop_at_destination = stop_at_destination if stop_at_destination is not None else True
                 stop_if_enemy_in_front_of_ship = False
             if mode == 'Быстро лететь к цели':
-                stop_at_destination = True
+                stop_at_destination = stop_at_destination if stop_at_destination is not None else True
                 stop_if_enemy_in_front_of_ship = False
                 speed_up = True
             if mode == 'Лететь к цели':
-                stop_at_destination = True
+                stop_at_destination = stop_at_destination if stop_at_destination is not None else True
                 stop_if_enemy_in_front_of_ship = False
                 speed_up = False
 
@@ -824,7 +1140,7 @@ class Player:
             return True
 
         if rotate_first:
-            self.rotate_to_target()
+            self.rotate_to_target(sync=True)
 
         last_distance_to_target = self.target_distance
         last_distance_to_target_time = time.time()
@@ -832,6 +1148,7 @@ class Player:
 
         while self.target_distance > target_bias:
             if self.is_dead():
+                self.stop_rotation()
                 raise ValueError
 
             self.clicker.keypress(self.force_key if speed_up else self.forward_key)
@@ -845,10 +1162,12 @@ class Player:
                 if target_bias == -1:
                     print(datetime.datetime.now(), 'Прыжок в другой лабиринт')
                     self.clicker.keypress(win32con.VK_DOWN)
+                    self.stop_rotation()
                     return True
                 else:
                     print(datetime.datetime.now(), 'Прыжок в другой лабиринт (ошибка)')
                     self.clicker.keypress(win32con.VK_DOWN)
+                    self.stop_rotation()
                     return False
 
             last_player_coord = self.radar_coords
@@ -858,7 +1177,7 @@ class Player:
 
             # Если мы не находимся за границей области, и враг напротив, то выходим
             if stop_if_enemy_in_front_of_ship and self.in_area():
-                enemy_coords = self.locate_enemies()
+                enemy_coords, screen, offset = self.locate_enemies()
                 for enemy_coord in enemy_coords:
                     to_enemy_distance = math.dist(self.center, enemy_coord)
                     to_enemy_direction = (
@@ -866,7 +1185,8 @@ class Player:
                         (enemy_coord[1] - self.center[1]) / to_enemy_distance
                     )
                     enemy_in_front_of_player = np.dot(self.player_direction, to_enemy_direction) > 0
-                    if enemy_in_front_of_player and self.is_enemy_valid(enemy_coord):
+                    if enemy_in_front_of_player and self.is_enemy_valid(enemy_coord, screen=screen, offset=offset):
+                        self.stop_rotation()
                         return False
 
             # Если застряли где-то, то пробуем случайно ускориться влево/вправо
@@ -883,39 +1203,61 @@ class Player:
         if stop_at_destination:
             self.clicker.keypress(win32con.VK_DOWN)
 
+        self.stop_rotation()
+
         return True
+
+    def scale_in_radar(self):
+        for i in range(7):
+            self.clicker.keypress(self.radar_in_key)
+
+        if self.scale_in_out_radar_delay > 0:
+            time.sleep(self.scale_in_out_radar_delay)
+
+        self.scaled_radar = True
+
+    def scale_out_radar(self):
+        for i in range(7):
+            self.clicker.keypress(self.radar_out_key)
+
+        if self.scale_in_out_radar_delay > 0:
+            time.sleep(self.scale_in_out_radar_delay)
+
+        self.scaled_radar = False
 
     def fly_to_base_trough_tunnel(self, tries=None):
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
-        for i in range(7):
-            self.clicker.keypress('^+')
 
-        time.sleep(1)
+        self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
+
+        self.scale_in_radar()
 
         for i in range(tries):
-            self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-            tunnel = next(iter(self.clicker.find_image(tunnel_img, threshold=.8)), None)
+            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+            tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
 
             if tunnel is None:
-                print(datetime.datetime.now(), 'Туннель не обнаружен')
+                print(datetime.datetime.now(), 'Тоннель не обнаружен')
             else:
                 h, w, _ = tunnel_img.shape
                 click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
                 self.clicker.move(*click_coord)
                 time.sleep(.1)
                 self.clicker.dblclick(*click_coord)
-                time.sleep(1)
-                self.clicker.screen_lookup()
-                tunnel_window_coord = next(iter(self.clicker.find_image(tunnel_window_title)), None)
+                tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
-                    print(datetime.datetime.now(), 'Окно взаимодействия с туннелем не было найдено')
+                    print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
                 else:
-                    base_option_coord = next(iter(self.clicker.find_image(
+                    screen, offset = self.clicker.screen_lookup()
+                    base_option_coord = self.clicker.find_image(
                         tunnel_window_base_title,
-                        window=(*tunnel_window_coord, tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400))), None)
+                        window=(*tunnel_window_coord, tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400),
+                        screen=screen,
+                        offset=offset
+                    )
                     if base_option_coord is None:
-                        print(datetime.datetime.now(), 'База клана не найдена в списке окна взаимодействия с туннелем')
+                        print(datetime.datetime.now(), 'База клана не найдена в списке воздушных течений')
                     else:
                         result = True
                         self.clicker.move(*base_option_coord)
@@ -928,55 +1270,39 @@ class Player:
             if i != tries - 1:
                 time.sleep(1)
 
-        for i in range(7):
-            self.clicker.keypress('^-')
+        self.scale_out_radar()
 
         return result
 
     def fly_from_tunnel_to(self, destination_name, tries=None):
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
-        for i in range(7):
-            self.clicker.keypress('^+')
 
-        time.sleep(1)
+        self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
+
+        self.scale_in_radar()
 
         for i in range(tries):
-            self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-            tunnel = next(iter(self.clicker.find_image(tunnel_img, threshold=.8)), None)
+            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+            tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
 
             if tunnel is None:
-                print(datetime.datetime.now(), 'Туннель не обнаружен')
+                print(datetime.datetime.now(), 'Тоннель не обнаружен')
             else:
                 h, w, _ = tunnel_img.shape
                 click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
                 self.clicker.move(*click_coord)
                 time.sleep(.1)
                 self.clicker.dblclick(*click_coord)
-                time.sleep(1)
-                self.clicker.screen_lookup()
-                tunnel_window_coord = next(iter(self.clicker.find_image(tunnel_window_title)), None)
+                tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
-                    print(datetime.datetime.now(), 'Окно взаимодействия с туннелем не было найдено')
+                    print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
                 else:
-                    # base_option_coord = next(iter(self.clicker.find_image(
-                    #     tunnel_window_base_title,
-                    #     window=(*tunnel_window_coord, tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400))), None)
-                    # if base_option_coord is None:
-                    #     print('База клана не найдена в списке окна взаимодействия с туннелем')
-                    # else:
-                    #     result = True
-                    #     self.clicker.move(*base_option_coord)
-                    #     self.clicker.click(base_option_coord[0] + 1, base_option_coord[1] + 1)
-                    #     print(f'Выбран переход "База клана"')
-                    #     time.sleep(1)
-                    #     break
-
-                    # [[b0, b1, b2, b3], str, float] window = (*b0, *b2)
                     window = (
                         tunnel_window_coord[0], tunnel_window_coord[1],
                         tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400
                     )
+                    screen, offset = self.clicker.screen_lookup(window=window)
 
                     last_texts = ['']
                     texts = []
@@ -984,8 +1310,7 @@ class Player:
                     while not result and last_texts != texts:
                         last_texts = texts
                         texts = []
-                        for bbox, text, accuracy in self.ocr_reader.readtext(
-                                self.clicker.screen[window[1]:window[3], window[0]:window[2]]):
+                        for bbox, text, accuracy in self.ocr_reader.readtext(screen):
                             texts.append(text)
                             if text == destination_name:
                                 result = True
@@ -1001,7 +1326,7 @@ class Player:
                         if not result and last_texts != texts:
                             self.clicker.scroll(delta=-1000, x=tunnel_window_coord[0] + 100, y=tunnel_window_coord[1] + 100)
                             time.sleep(.5)
-                            self.clicker.screen_lookup()
+                            screen, offset = self.clicker.screen_lookup(window=window)
 
                     if not result:
                         print(datetime.datetime.now(), f'Переход "{destination_name}" не найден')
@@ -1013,25 +1338,23 @@ class Player:
                 time.sleep(1)
 
         time.sleep(1)
-        for i in range(7):
-            self.clicker.keypress('^-')
+        self.scale_out_radar()
 
         return result
 
     def fly_from_base_to(self, destination_name):
         result = False
         self.clicker.click(-130, 100)
-        time.sleep(1)
-        self.clicker.screen_lookup()
-        tunnel_window_coord = next(iter(self.clicker.find_image(tunnel_window_title)), None)
+        tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
         if tunnel_window_coord is None:
-            print(datetime.datetime.now(), 'Окно взаимодействия с туннелем не было найдено')
+            print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
         else:
             # [[b0, b1, b2, b3], str, float] window = (*b0, *b2)
             window = (
                 tunnel_window_coord[0], tunnel_window_coord[1],
                 tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400
             )
+            screen, offset = self.clicker.screen_lookup(window=window)
 
             last_texts = ['']
             texts = []
@@ -1039,8 +1362,9 @@ class Player:
             while not result and last_texts != texts:
                 last_texts = texts
                 texts = []
-                for bbox, text, accuracy in self.ocr_reader.readtext(self.clicker.screen[window[1]:window[3], window[0]:window[2]]):
+                for bbox, text, accuracy in self.ocr_reader.readtext(screen):
                     texts.append(text)
+                    print(text)
                     if text == destination_name:
                         result = True
                         x, y = bbox[0]
@@ -1050,13 +1374,12 @@ class Player:
                         self.clicker.click(x + 1, y + 1)
                         print(datetime.datetime.now(), f'Выбран переход "{destination_name}"')
                         break
-                    print(text)
 
                 # Скроллим дальше, если возможно
                 if not result and last_texts != texts:
                     self.clicker.scroll(delta=-1000, x=tunnel_window_coord[0] + 100, y=tunnel_window_coord[1] + 100)
                     time.sleep(.5)
-                    self.clicker.screen_lookup()
+                    screen, offset = self.clicker.screen_lookup(window=window)
 
             if not result:
                 print(datetime.datetime.now(), f'Переход "{destination_name}" не найден')
@@ -1064,12 +1387,14 @@ class Player:
         return result
 
     def fly_route(self, route: list[((int, int), str)]):
-        def act(action, attribute):
+        def act(action, attribute, stop_at_route_point=False):
             if action == 'Вылет':
                 return self.undock(available_directions_to_undock=attribute)
             elif action == 'Перелететь':
                 return self.fly_from_base_to(destination_name=attribute)
             elif action == 'В туннель':
+                return self.fly_from_tunnel_to(destination_name=attribute)
+            elif action == 'В тоннель':
                 return self.fly_from_tunnel_to(destination_name=attribute)
             elif action == 'Ожидание перелета':
                 return self.wait_for_warp()
@@ -1083,15 +1408,21 @@ class Player:
                 return self.suicide()
             elif action == 'Начать диалог':
                 return self.start_dialog()
+            elif action == 'Выбрать опцию диалога':
+                return self.select_dialog_option(*attribute if type(attribute) in [tuple, list] else [attribute])
+            elif action == 'Пролететь через вихрь':
+                return self.fly_through_vortex()
             elif type(action) in [tuple, list]:
-                return self.fly_to(*action, mode=attribute)
+                return self.fly_to(*action, mode=attribute, stop_at_destination=stop_at_route_point)
 
         def delay(action):
             if action == 'Вылет':
-                return time.sleep(10)
+                return time.sleep(5)
             elif action == 'Перелететь':
                 return time.sleep(3)
             elif action == 'В туннель':
+                return time.sleep(15)
+            elif action == 'В тоннель':
                 return time.sleep(15)
             elif action == 'Ожидание перелета':
                 return time.sleep(1)
@@ -1105,6 +1436,10 @@ class Player:
                 return time.sleep(1)
             elif action == 'Начать диалог':
                 return time.sleep(1)
+            elif action == 'Выбрать опцию диалога':
+                return time.sleep(1)
+            elif action == 'Пролететь через вихрь':
+                return time.sleep(5)
             elif type(action) in [tuple, list]:
                 return time.sleep(1)
 
@@ -1113,10 +1448,11 @@ class Player:
                 raise ValueError
 
             action, attribute = route_point
-            while not act(action, attribute):
+            stop_at_route_point = type(route[index + 1]) not in [tuple, list] if index + 1 < len(route) else True
+            while not act(action, attribute, stop_at_route_point=stop_at_route_point):
                 delay(action)
                 backup_action, backup_attribute = route[index - 1]
-                act(backup_action, backup_attribute)
+                act(backup_action, backup_attribute, stop_at_route_point=type(action) not in [tuple, list])
 
             delay(action)
 
@@ -1127,9 +1463,8 @@ class Player:
                 setattr(self, attribute, value)
 
     def find_text(self, text, window=None):
-        self.clicker.screen_lookup(window=window)
-        for bbox, ocr_text, accuracy in self.ocr_reader.readtext(
-                self.clicker.screen):
+        screen, offset = self.clicker.screen_lookup(window=window)
+        for bbox, ocr_text, accuracy in self.ocr_reader.readtext(screen):
             # print(ocr_text)
             if text in ocr_text:
                 x, y = bbox[0]
@@ -1145,13 +1480,13 @@ class Player:
         current_time = time.time()
         if current_time - self.death_check_last_time > self.death_check_delay:
             self.death_check_last_time = current_time
-            self.clicker.screen_lookup(window=(0, 0, -1, 200))
-            dead_title_coord = next(iter(self.clicker.find_image(dead_title)), None)
+            screen, offset = self.clicker.screen_lookup(window=(0, 0, -1, 200))
+            dead_title_coord = self.clicker.find_image(dead_title, screen=screen, offset=offset)
             if dead_title_coord is not None:
                 print(datetime.datetime.now(), f'Корабль подбит!')
-                self.clicker.screen_lookup(
+                screen, offset = self.clicker.screen_lookup(
                     window=(*dead_title_coord, dead_title_coord[0] + 200, dead_title_coord[1] + 200))
-                pay_button_coord = next(iter(self.clicker.find_image(pay_button)), None)
+                pay_button_coord = self.clicker.find_image(pay_button, screen=screen, offset=offset)
                 if pay_button_coord is not None:
                     self.clicker.click(*pay_button_coord)
                     time.sleep(1)
@@ -1161,161 +1496,282 @@ class Player:
                 return True
         return False
 
-    def open_cargo(self):
-        self.clicker.screen_lookup()
-        ship_tab_coord = next(iter(self.clicker.find_image(ship_tab)), None)
+    def open_ship(self):
+        screen, offset = self.clicker.screen_lookup()
+        ship_tab_coord = self.clicker.find_image(ship_tab, screen=screen, offset=offset)
         if ship_tab_coord is not None:
             self.clicker.click(*ship_tab_coord)
         else:
-            self.clicker.keypress('i')
-            time.sleep(1)
-
-            self.clicker.screen_lookup()
-            ship_tab_coord = next(iter(self.clicker.find_image(ship_tab)), None)
+            self.clicker.keypress(self.inventory_key)
+            ship_tab_coord = self.clicker.wait_for_image(ship_tab, timeout=self.action_timeout)
+            wait_result = False
             if ship_tab_coord is not None:
                 self.clicker.click(*ship_tab_coord)
-                time.sleep(1)
-                self.clicker.screen_lookup()
-            else:
+                wait_result = self.clicker.wait_for_image(equipment_tab, timeout=self.action_timeout)
+
+            if not wait_result:
+                print(datetime.datetime.now(), "Окно корабля не открылось")
                 return False
 
-        cargo_tab_coord = next(iter(self.clicker.find_image(cargo_tab)), None)
+        return True
+
+    def open_cargo(self):
+        if not self.open_ship():
+            return False
+
+        cargo_tab_coord = self.clicker.wait_for_image(cargo_tab, timeout=self.action_timeout)
         if cargo_tab_coord is not None:
             self.clicker.click(*cargo_tab_coord)
             return True
-        return False
+        else:
+            print(datetime.datetime.now(), "Вкладка трюма не была найдена")
+            return False
+
+    def open_equipment(self):
+        if not self.open_ship():
+            return False
+
+        equipment_tab_coord = self.clicker.wait_for_image(equipment_tab, timeout=self.action_timeout)
+        if equipment_tab_coord is not None:
+            self.clicker.click(*equipment_tab_coord)
+            if self.clicker.wait_for_image(crew_title, timeout=self.action_timeout):
+                print(datetime.datetime.now(), "Открыта вкладка снаряжения")
+                return True
+            else:
+                print(datetime.datetime.now(), "Вкладка снаряжения не была открыта")
+                return False
+        else:
+            print(datetime.datetime.now(), "Вкладка снаряжения не была найдена")
+            return False
 
     def drop_chests(self):
         self.open_cargo()
-        self.clicker.screen_lookup()
+        screen, offset = self.clicker.screen_lookup()
         for chest_type in [chest_icon, black_chest_icon]:
-            chest_coord = next(iter(self.clicker.find_image(chest_type)), None)
+            chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
             while chest_coord is not None:
                 self.clicker.ldown(*chest_coord)
                 time.sleep(.5)
                 self.clicker.move(10, 10)
                 time.sleep(.5)
                 self.clicker.lup(10, 10)
-                time.sleep(4)
-                self.clicker.screen_lookup()
-                drop_button_coord = next(iter(self.clicker.find_image(drop_button)), None)
+                drop_button_coord = self.clicker.wait_for_image(drop_button, timeout=6)
                 if drop_button_coord is not None:
                     self.clicker.click(*drop_button_coord)
+                print(datetime.datetime.now(), "Выброшен сундук")
                 time.sleep(1)
-                self.clicker.screen_lookup()
-                chest_coord = next(iter(self.clicker.find_image(chest_type)), None)
+                screen, offset = self.clicker.screen_lookup()
+                chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
 
     def locate(self, image, threshold=.85, min_dist=10):
-        self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-        coords = self.clicker.find_image(image, threshold=threshold, centers=True, min_dist=min_dist)
+        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        coords = self.clicker.find_images(image, threshold=threshold, centers=True, min_dist=min_dist, screen=screen, offset=offset)
         return coords
 
-    def approach(self, image, threshold=.85, distance=0):
+    def get_speed_arm_value(self):
+        arm_window = (-204, -137, -199, -109)
+        screen, offset = self.clicker.screen_lookup(arm_window)
+        self.clicker.fill(window=(-200, -137, -199, -133), color=(0, 0, 0), screen=screen, offset=offset)
+
+        coord = self.clicker.find_pixel(color=(227, 227, 227), threshold=0.9, screen=screen, offset=offset)
+        value = None
+        if coord is not None:
+            # self.clicker.fill(window=(*coord, *coord), color=(255, 0, 0))
+            left, top, right, bottom = self.clicker._resolve_window(arm_window)
+            zero_x, zero_y = self.clicker._resolve_coord(-199, -115)
+            coord_x, coord_y = coord
+            value = 0
+            if coord_y < zero_y:
+                value = (coord_y - zero_y) / (top - zero_y)
+            elif coord_y > zero_y:
+                value = -((coord_y - zero_y) / (bottom - zero_y))
+
+        return value
+
+    def set_speed_arm_value(self, value):
+        arm_window = (-204, -137, -199, -109)
+        screen, offset = self.clicker.screen_lookup(arm_window)
+        self.clicker.fill(window=(-200, -137, -199, -133), color=(0, 0, 0), screen=screen, offset=offset)
+
+        coord = self.clicker.find_pixel(color=(227, 227, 227), threshold=0.9, screen=screen, offset=offset)
+        if coord is not None:
+
+            left, top, right, bottom = self.clicker._resolve_window(arm_window)
+            zero_x, zero_y = self.clicker._resolve_coord(-199, -115)
+
+            coord_x, coord_y = coord
+            current_value = 0
+            initial_handle_offset = 17 + 3
+            if coord_y < zero_y:
+                current_value = (coord_y - zero_y) / (top - zero_y)
+                initial_handle_offset = 17 + int((27 - 17) * current_value) + 3
+            elif coord_y > zero_y:
+                current_value = -((coord_y - zero_y) / (bottom - zero_y))
+                initial_handle_offset = 17 + int((14 - 17) * abs(current_value)) + 3
+
+            target_y = zero_y
+            target_handle_offset = 17 + 3
+            value = min(max(-1, value), 1)
+            if value < 0:
+                target_y = zero_y + int((bottom - zero_y) * abs(value))
+                target_handle_offset = 17 + int((14 - 17) * abs(value)) + 3
+            elif value > 0:
+                target_y = zero_y + int((top - zero_y) * value)
+                target_handle_offset = 17 + int((27 - 17) * value) + 3
+
+            # print(current_value, value)
+            # print(coord[1], target_y)
+            # print(coord[1] - initial_handle_offset, target_y - target_handle_offset)
+            from_y = coord[1] - initial_handle_offset
+            to_y = target_y - target_handle_offset
+            if abs(from_y - to_y) > 3:
+                self.clicker.ldown(coord[0], from_y)
+                time.sleep(.5)
+                self.clicker.move(coord[0], to_y)
+                time.sleep(.5)
+                self.clicker.lup(coord[0], to_y)
+            return True
+        else:
+            return False
+
+    def set_low_speed(self):
+        return self.set_speed_arm_value(0.28)
+
+    def approach(self, image, threshold=.85, distance=0,
+                 stop_action_image=None, very_slow=False, correct_rotation=True, stop_distance_diff=2):
         coords = self.locate(image=image, threshold=threshold)
         if not coords:
+            print(datetime.datetime.now(), 'Объект не найден')
             return False
 
         closest_coord = min(coords, key=lambda x: math.dist(x, self.center))
 
-        self.rotate_to_radar(closest_coord)
-
         last_closest_distance = math.dist(closest_coord, self.center)
-        while last_closest_distance > distance:
+        if stop_action_image is not None:
+            stop_action_present = self.find_action(stop_action_image)
+        else:
+            stop_action_present = False
+
+        if last_closest_distance <= distance or stop_action_present:
+            print(datetime.datetime.now(), 'Уже на месте')
+            return True
+
+        self.rotate_to_radar(closest_coord, sync=True)
+
+        if very_slow:
+            self.set_low_speed()
+        else:
             self.clicker.keypress(self.forward_key)
+
+        while last_closest_distance > distance and not stop_action_present:
+            # Обработка смерти
+            if self.is_dead():
+                raise ValueError
+
+            time.sleep(.1)
             coords = self.locate(image=image, threshold=threshold)
             if not coords:
+                self.stop_rotation()
                 break
 
             closest_coord = min(coords, key=lambda x: math.dist(x, self.center))
             closest_distance = math.dist(closest_coord, self.center)
-            if closest_distance > last_closest_distance + 2:
+            if closest_distance > last_closest_distance + stop_distance_diff:
+                self.stop_rotation()
                 break
-            self.rotate_to_radar(closest_coord)
+
+            if correct_rotation:
+                self.rotate_to_radar(closest_coord, sync=False)
             last_closest_distance = closest_distance
-            time.sleep(.1)
+
+            if stop_action_image is not None:
+                stop_action_present = self.find_action(stop_action_image)
 
         self.clicker.keypress(win32con.VK_DOWN)
+        self.stop_rotation()
 
-        # for i in range(7):
-        #     self.clicker.keypress('^+')
-        #
-        # time.sleep(.5)
+        # self.scale_in_radar()
         # dandelions = self.locate_dandelions()
         # if not dandelions:
-        #     for i in range(7):
-        #         self.clicker.keypress('^-')
-        #
-        #     time.sleep(.5)
+        #     self.scale_out_radar()
         #     return False
         # closest_dandelion = min(dandelions, key=lambda x: math.dist(x, self.center))
         # self.rotate_to_radar(closest_dandelion)
         # time.sleep(.5)
         #
-        # for i in range(7):
-        #     self.clicker.keypress('^-')
-        #
-        # time.sleep(.5)
+        # self.scale_out_radar()
         return True
 
-    def locate_dandelions(self):
-        self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+    def locate_dandelions(self, return_dandelion_image=False):
+        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
         dandelions = []
         for dandelion_type in [pink_dandelion, green_dandelion, orange_dandelion]:
-            dandelions_of_type = self.clicker.find_image(dandelion_type, min_dist=10, threshold=.85)
-            dandelions.extend(dandelions_of_type)
+            dandelions_of_type = self.clicker.find_images(dandelion_type, min_dist=10,
+                                                          threshold=self.dandelion_detection_precision,
+                                                          centers=True, screen=screen, offset=offset)
+            if return_dandelion_image:
+                dandelions.extend(list(zip(dandelions_of_type, [dandelion_type] * len(dandelions_of_type))))
+            else:
+                dandelions.extend(dandelions_of_type)
 
-        for i, dandelion in enumerate(dandelions):
-            dandelions[i] = (dandelion[0] + 6, dandelion[1] + 6)
+        # for i, dandelion in enumerate(dandelions):
+        #     dandelions[i] = (dandelion[0] + 6, dandelion[1] + 6)
 
         # for dandelion in dandelions:
-        #     self.clicker.fill(window=(*dandelion, *dandelion), color=(0, 255, 0))
+        #     self.clicker.fill(window=(*dandelion, *dandelion), color=(0, 255, 0), screen=screen, offset=offset)
 
-        # cv2.imwrite('screen.png', self.clicker.screen)
+        # cv2.imwrite('screen.png', screen)
 
         return dandelions
 
     def move_to_dandelion(self):
-        dandelions = self.locate_dandelions()
+        dandelions = self.locate_dandelions(return_dandelion_image=True)
         if not dandelions:
+            self.lookup_coords()
+            radar_coord = str(self.radar_coords).replace(', ', ':')
+            print(datetime.datetime.now(), f"Одуванчиков не найдено {radar_coord}")
             return False
 
-        closest_dandelion = min(dandelions, key=lambda x: math.dist(x, self.center))
-        self.rotate_to_radar(closest_dandelion)
-        self.clicker.keypress(self.forward_key)
+        # closest_dandelion_coord = min(dandelions_coord, key=lambda x: math.dist(x, self.center))
+        # self.rotate_to_radar(closest_dandelion_coord, sync=True)
+        # self.clicker.keypress(self.forward_key)
+        #
+        # last_closest_distance = math.dist(closest_dandelion_coord, self.center)
+        # while last_closest_distance > 10:
+        #     # Обработка смерти
+        #     if self.is_dead():
+        #         raise ValueError
+        #
+        #     dandelions_coord = self.locate_dandelions()
+        #     if not dandelions_coord:
+        #         break
+        #     closest_dandelion_coord = min(dandelions_coord, key=lambda x: math.dist(x, self.center))
+        #     closest_dandelion_distance = math.dist(closest_dandelion_coord, self.center)
+        #     if closest_dandelion_distance > last_closest_distance + 2:
+        #         break
+        #     last_closest_distance = closest_dandelion_distance
+        #     time.sleep(.1)
+        #
+        # self.clicker.keypress(win32con.VK_DOWN)
 
-        last_closest_distance = math.dist(closest_dandelion, self.center)
-        while last_closest_distance > 10:
-            dandelions = self.locate_dandelions()
-            if not dandelions:
-                break
-            closest_dandelion = min(dandelions, key=lambda x: math.dist(x, self.center))
-            closest_dandelion_distance = math.dist(closest_dandelion, self.center)
-            if closest_dandelion_distance > last_closest_distance + 2:
-                break
-            last_closest_distance = closest_dandelion_distance
-            time.sleep(.1)
+        dandelion_image = min(dandelions, key=lambda x: math.dist(x[0], self.center))[1]
+        self.approach(image=dandelion_image, distance=self.dandelion_approach_distance,
+                      threshold=self.dandelion_detection_precision)
 
-        self.clicker.keypress(win32con.VK_DOWN)
-
-        for i in range(7):
-            self.clicker.keypress('^+')
-
-        time.sleep(.5)
-        dandelions = self.locate_dandelions()
-        if not dandelions:
-            for i in range(7):
-                self.clicker.keypress('^-')
-
-            time.sleep(.5)
+        # Корректировка направления к одуванчику
+        self.scale_in_radar()
+        dandelions_coord = self.locate_dandelions()
+        if not dandelions_coord:
+            self.scale_out_radar()
+            self.lookup_coords()
+            radar_coord = str(self.radar_coords).replace(', ', ':')
+            print(datetime.datetime.now(), f"Потерян одуванчик после подлёта к нему {radar_coord}")
             return False
-        closest_dandelion = min(dandelions, key=lambda x: math.dist(x, self.center))
-        self.rotate_to_radar(closest_dandelion)
+        closest_dandelion_coord = min(dandelions_coord, key=lambda x: math.dist(x, self.center))
+        self.rotate_to_radar(closest_dandelion_coord, sync=True)
         time.sleep(.5)
 
-        for i in range(7):
-            self.clicker.keypress('^-')
-
-        time.sleep(.5)
+        self.scale_out_radar()
         return True
 
     def loot_dandelion(self):
@@ -1334,50 +1790,15 @@ class Player:
             self.loot()
             time.sleep(.3)
 
-    def dandelion_cycle(self):
-        dandelions_global_coords = [
-            (53, 32),
-            (52, 28),
-            (56, 25),
-            (62, 25),
-            (60, 28),
-            (59, 31),
-            (62, 34),
-            (65, 33),
-            (62, 38),
-            (66, 39),
-            (63, 41),
-            (62, 42),
-            (66, 45),
-            (63, 47),
-            (61, 45),
-            (58, 44),
-            (57, 48),
-            (57, 48),
-            (60, 50),
-            (55, 50),
-            (52, 48),
-            (53, 42),
-            (51, 39),
-            (48, 38),
-            (49, 32),
-            (52, 36),
-        ]
-
-        for point in dandelions_global_coords:
-            self.fly_to(*point, stop_at_destination=True, target_bias=1.5, stop_if_enemy_in_front_of_ship=False)
-            time.sleep(1)
-            if self.move_to_dandelion():
-                time.sleep(.5)
-                self.loot_dandelion()
-
     def start_dialog(self):
-        self.clicker.screen_lookup()
-        dialog_button_coord = next(iter(self.clicker.find_image(dialog_button)), None)
+        screen, offset = self.clicker.screen_lookup()
+        dialog_button_coord = self.clicker.find_image(dialog_button, screen=screen, offset=offset)
         if dialog_button_coord is not None:
             self.clicker.click(*dialog_button_coord)
+            print(datetime.datetime.now(), "Начат диалог")
             return True
         else:
+            print(datetime.datetime.now(), "Кнопка начала диалога не была найдена")
             return False
 
     def select_dialog_option(self, option, index=1):
@@ -1388,13 +1809,13 @@ class Player:
             'квест': quest_dialog_option,
             'сдать': complete_dialog_option,
             'вопрос': question_dialog_option
-        }.get(option, None)
+        }.get(option.lower(), None)
 
         if option_image is None:
             return False
         else:
-            self.clicker.screen_lookup()
-            options = self.clicker.find_image(option_image, min_dist=5)
+            screen, offset = self.clicker.screen_lookup()
+            options = self.clicker.find_images(option_image, min_dist=5, screen=screen, offset=offset)
             if index < len(options):
                 selected_option = options[index]
                 h, w, _ = option_image.shape
@@ -1408,18 +1829,15 @@ class Player:
                 return False
 
     def send_message_to_chat(self, message, key_delay=.1):
-        self.clicker.keypress('\r')
+        self.clicker.keypress(self.enter_key)
         time.sleep(.5)
-        for key in message:
-            self.clicker.send_char(key)
-            time.sleep(key_delay)
-        self.clicker.keypress('\r')
+        self.clicker.send_chars(message, key_delay=key_delay)
+        self.clicker.keypress(self.enter_key)
+        print(datetime.datetime.now(), f"Отправлено сообщение в чат \"{message}\"")
 
     def invite_to_party(self, name):
         self.send_message_to_chat(f'/invite {name}')
-        time.sleep(1)
-        self.clicker.screen_lookup()
-        invite_button_coord = next(iter(self.clicker.find_image(invite_button)), None)
+        invite_button_coord = self.clicker.wait_for_image(invite_button, timeout=self.action_timeout)
         if invite_button_coord is not None:
             h, w, _ = invite_button.shape
             invite_button_coord = (
@@ -1427,24 +1845,26 @@ class Player:
                 invite_button_coord[1] + int(h / 2)
             )
             self.clicker.click(*invite_button_coord)
+            print(datetime.datetime.now(), f"Отправлено приглашение в группу игроку {name}")
             return True
         else:
+            print(datetime.datetime.now(), f"Не удалось отправить приглашение в группу игроку {name}")
             return False
 
     def wait_for_party_request(self):
-        self.clicker.screen_lookup()
-        party_request_coord = next(iter(self.clicker.find_image(party_request)), None)
+        screen, offset = self.clicker.screen_lookup()
+        party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
         while party_request_coord is None:
             if self.is_dead():
                 raise ValueError
             time.sleep(1)
-            self.clicker.screen_lookup()
-            party_request_coord = next(iter(self.clicker.find_image(party_request)), None)
+            screen, offset = self.clicker.screen_lookup()
+            party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
         return True
 
     def accept_party_request(self):
-        self.clicker.screen_lookup()
-        party_request_coord = next(iter(self.clicker.find_image(party_request)), None)
+        screen, offset = self.clicker.screen_lookup()
+        party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
         if party_request_coord is not None:
             h, w, _ = party_request.shape
             party_request_coord = (
@@ -1452,9 +1872,7 @@ class Player:
                 party_request_coord[1] + int(h / 2),
             )
             self.clicker.click(*party_request_coord)
-            time.sleep(1)
-            self.clicker.screen_lookup()
-            accept_coord = next(iter(self.clicker.find_image(accept_button)), None)
+            accept_coord = self.clicker.wait_for_image(accept_button, timeout=self.action_timeout)
             if accept_coord is not None:
                 h, w, _ = accept_button.shape
                 accept_coord = (
@@ -1470,9 +1888,7 @@ class Player:
 
     def suicide(self):
         self.send_message_to_chat('/die')
-        time.sleep(1)
-        self.clicker.screen_lookup()
-        to_city_coord = next(iter(self.clicker.find_image(to_city_button)), None)
+        to_city_coord = self.clicker.wait_for_image(to_city_button, timeout=self.action_timeout)
         if to_city_coord is not None:
             h, w, _ = to_city_button.shape
             to_city_coord = (
@@ -1495,8 +1911,25 @@ class Player:
         self.farm_start_time = time.time()
         return {
             "Убийство мобов в зоне": self.fly_in_zone_and_kill_mobs,
-            "Рыбалка": self.fishing
+            "Рыбалка": self.fishing,
+            "Одуванчики": self.dandelion_cycle,
+            "Дерево": self.woodcutting,
         }[self.mode if mode is None else mode]()
+
+    def in_city_actions(self, mode=None):
+        action_list = {
+            "Убийство мобов в зоне": (self.store_resources_and_service, self.reload_gasholders),
+            "Рыбалка": (self.store_resources_and_service, self.reload_gasholders),
+            "Одуванчики": (self.store_resources_and_service, self.reload_gasholders),
+            "Дерево": (self.store_resources_and_service, self.reload_gasholders, self.saw_prep_in_dock),
+        }[self.mode if mode is None else mode]
+
+        self.close_all_windows()
+        time.sleep(1)
+        for action in action_list:
+            action()
+            self.close_all_windows()
+            time.sleep(1)
 
     def fly_in_zone_and_kill_mobs(self):
         self.in_combat = True
@@ -1527,19 +1960,19 @@ class Player:
                     last_closest_target = closest_target
                 self.in_combat = True
             else:
-                time.sleep(.3)
+                time.sleep(self.delay_between_farm_attempts)
 
     def fishing(self):
         bad_fishing_tries = 0
         max_bad_fishing_tries = self.fishing_spot_max_bad_fishing_tries
-        catching_window_coords = (0, 0, -1, -1)
+        catching_window_coord = (0, 0, -1, -1)
         fishing_in_progress = False
         last_continue_click_coord = None
 
         fishing_image = {
             True: fishing_spot,
             False: fishing_spot_eels
-        }[len(self.locate(image=fishing_spot)) > 0]
+        }[len(self.locate(image=fishing_spot, threshold=self.fishing_spot_detection_precision)) > 0]
         # if self.approach(fishing_image, distance=self.fishing_spot_approach_distance, threshold=self.fishing_spot_detection_precision):
         #     time.sleep(3)
 
@@ -1553,55 +1986,54 @@ class Player:
                 if not (is_farm_not_ended or fishing_in_progress):
                     break
 
-                self.clicker.screen_lookup()
+                screen, offset = self.clicker.screen_lookup()
                 # cv2.imwrite('screen.png', self.clicker.screen)
-                continue_coords = next(iter(self.clicker.find_image(continue_img, window=catching_window_coords)), None)
-                if continue_coords:
+                continue_coord = self.clicker.find_image(continue_img, window=catching_window_coord, screen=screen, offset=offset)
+                if continue_coord:
                     bad_fishing_tries = 0
-                    full_net_coords = next(iter(self.clicker.find_image(full_net_img, window=catching_window_coords)), None)
-                    if full_net_coords or not is_farm_not_ended:
+                    full_net_coord = self.clicker.find_image(full_net_img, window=catching_window_coord, screen=screen, offset=offset)
+                    if full_net_coord or not is_farm_not_ended:
                         # print(datetime.datetime.now(), 'Сеть заполнилась.')
-                        pickup_coords = next(iter(self.clicker.find_image(pickup_img, window=catching_window_coords)), None)
-                        if pickup_coords:
+                        pickup_coord = self.clicker.find_image(pickup_img, window=catching_window_coord, screen=screen, offset=offset)
+                        if pickup_coord:
                             print(datetime.datetime.now(), 'Поднять сеть.')
                             fishing_in_progress = False
-                            self.clicker.click(*pickup_coords)
+                            self.clicker.click(*pickup_coord)
                             time.sleep(3)
                             continue
                     else:
                         print(datetime.datetime.now(), 'Продолжить ловить.')
                         fishing_in_progress = True
                         continue_click_coord = (
-                            continue_coords[0] + random.randint(1, 5),
-                            continue_coords[1] + random.randint(1, 5)
+                            continue_coord[0] + random.randint(1, 5),
+                            continue_coord[1] + random.randint(1, 5)
                         )
                         while continue_click_coord == last_continue_click_coord:
                             continue_click_coord = (
-                                continue_coords[0] + random.randint(1, 5),
-                                continue_coords[1] + random.randint(1, 5)
+                                continue_coord[0] + random.randint(1, 5),
+                                continue_coord[1] + random.randint(1, 5)
                             )
 
                         self.clicker.click(*continue_click_coord)
                         last_continue_click_coord = continue_click_coord
                 else:
-                    catching_coords = next(iter(self.clicker.find_image(catching_img, catching_window_coords)), None)
+                    catching_coord = self.clicker.find_image(catching_img, catching_window_coord, screen=screen, offset=offset)
                     # Возможно было перемещено пользователем
-                    if catching_coords is None:
-                        catching_coords = next(iter(self.clicker.find_image(catching_img)), None)
+                    if catching_coord is None:
+                        catching_coord = self.clicker.find_image(catching_img, screen=screen, offset=offset)
 
-                    if catching_coords:
+                    if catching_coord:
                         # print(datetime.datetime.now(), 'Ловля в прогрессе.')
                         # bad_fishing_tries = 0
-                        catching_window_coords = (
-                        catching_coords[0] - 10, catching_coords[1], catching_coords[0] + 400, catching_coords[1] + 600)
+                        catching_window_coord = (
+                        catching_coord[0] - 10, catching_coord[1], catching_coord[0] + 400, catching_coord[1] + 600)
                     else:
-                        start_catch_coords = next(
-                            iter(self.clicker.find_image(start_catch_img, window=(-70, 360, -1, -1))), None)
-                        if start_catch_coords:
+                        start_catch_coord = self.clicker.find_image(start_catch_img, window=self.action_window, screen=screen, offset=offset)
+                        if start_catch_coord:
                             print(datetime.datetime.now(), 'Начало рыбалки.')
                             fishing_in_progress = True
                             # bad_fishing_tries = 0
-                            self.clicker.click(*start_catch_coords)
+                            self.clicker.click(*start_catch_coord)
                         else:
                             print(datetime.datetime.now(), 'Кнопка начала рыбалки не была найдена!')
                             bad_fishing_tries += 1
@@ -1610,12 +2042,14 @@ class Player:
                                 # beep(sync=True)
                                 break
 
-                            if self.approach(fishing_image, distance=self.fishing_spot_approach_distance,
-                                             threshold=self.fishing_spot_detection_precision):
+                            if self.approach(fishing_image,
+                                             distance=self.fishing_spot_approach_distance if not self.positioning_to_the_center else 0,
+                                             threshold=self.fishing_spot_detection_precision,
+                                             stop_action_image=start_catch_img if not self.positioning_to_the_center else None):
                                 time.sleep(3)
+                                continue
 
-
-                time.sleep(5)
+                time.sleep(self.delay_between_farm_attempts)
             except win32ui.error:
                 print(datetime.datetime.now(),
                       f'Случилась внутренняя ошибка windows при определении окна, '
@@ -1624,3 +2058,446 @@ class Player:
             except ValueError:
                 print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
                 beep(sync=True)
+
+    def dandelion_cycle(self):
+        dandelions_global_coord = [
+            [53, 32],
+            [52, 28],
+            [56, 25],
+            [62, 25],
+            [60, 28],
+            [59, 31],
+            [62, 34],
+            [65, 33],
+            [62, 38],
+            [66, 39],
+            [63, 41],
+            [62, 42],
+            [66, 45],
+            [63, 47],
+            [61, 45],
+            [58, 44],
+            [57, 48],
+            [57, 48],
+            [60, 50],
+            [55, 50],
+            [52, 48],
+            [53, 42],
+            [51, 39],
+            [48, 38],
+            [49, 32],
+            [52, 36],
+        ]
+
+        farming = self.is_farming()
+        while farming:
+            for dandelion_coord in self.target_coords_range:
+                self.fly_to(*dandelion_coord, stop_at_destination=self.stop_at_destination, target_bias=self.target_bias,
+                            stop_if_enemy_in_front_of_ship=self.stop_if_enemy_in_front_of_ship)
+                time.sleep(1)
+                if self.move_to_dandelion():
+                    time.sleep(.5)
+                    self.loot_dandelion()
+
+                # Заканчиваем цикл, если после сбора пушинки фарм окончен
+                farming = self.is_farming()
+                if not farming:
+                    break
+
+                time.sleep(self.delay_between_farm_attempts)
+
+            # except win32ui.error:
+            #     print(datetime.datetime.now(),
+            #           f'Случилась внутренняя ошибка windows при определении окна, '
+            #           f'будет произведена повторная попытка получить окно {self.clicker.hwnd}.')
+            #     continue
+            # except ValueError:
+            #     print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
+            #     beep(sync=True)
+
+    def woodcutting(self):
+        bad_cutting_tries = 0
+
+        tree_spot_image = {
+            False: tree_image_base,
+            True: tree_image_orange,
+        }[len(self.locate(image=tree_image_orange, threshold=self.tree_spot_detection_precision)) > 0]
+        broken_saw_image = broken_saw_big_image
+        not_broken_saw_image = not_broken_saw_big_image
+        # if self.approach(tree_spot_image, distance=self.fishing_spot_approach_distance, threshold=self.fishing_spot_detection_precision):
+        #     time.sleep(3)
+
+        # Если при запуске мы уже на дереве
+        start_cutting_button = self.find_action(launch_saw_active_image)
+        if start_cutting_button:
+            if self.do_looting:
+                self.scale_in_radar()
+            self.clicker.keypress(self.auto_use_all_key)
+            self.start_spam_attack()
+
+        self.last_looting_time = time.time()
+
+        while True:
+            # Обработка смерти
+            if self.is_dead():
+                self.stop_spam_attack()
+
+                if self.do_looting:
+                    self.scale_out_radar()
+
+                raise ValueError
+
+            try:
+                if not self.is_farming():
+                    self.stop_spam_attack()
+
+                    if self.do_looting:
+                        self.scale_out_radar()
+
+                    break
+
+                start_cutting_button = self.find_action(launch_saw_active_image)
+                if start_cutting_button:
+                    bad_cutting_tries = 0
+
+                    self.target_and_kill()
+
+                    time.sleep(.01)
+                    if self.do_looting:
+                        self.loot()
+                    else:
+                        if len(self.locate_loot()) > 0:
+                            self.last_looting_time = time.time()
+
+                    if time.time() - self.last_looting_time > self.change_saw_after_no_looting_time:
+                        self.stop_spam_attack()
+                        if not self.change_saw():
+                            print(datetime.datetime.now(), "Дровосеки закончились")
+                            if self.do_looting:
+                                self.scale_out_radar()
+                            break
+                        self.start_spam_attack()
+                        self.last_looting_time = time.time() + 30
+                else:
+                    print(datetime.datetime.now(), 'Кнопка запуска дровосека не была найдена!')
+
+                    self.stop_spam_attack()
+
+                    if self.do_looting:
+                        self.scale_out_radar()
+
+                    bad_cutting_tries += 1
+                    if bad_cutting_tries > self.tree_spot_max_bad_cutting_tries:
+                        # beep(sync=True)
+                        break
+
+                    # Подлететь к дереву
+                    self.approach(tree_spot_image, distance=self.tree_spot_approach_distance,
+                                  threshold=self.tree_spot_detection_precision,
+                                  stop_action_image=launch_saw_active_image,
+                                  very_slow=True if not self.positioning_to_the_center else False)
+
+                    self.scale_in_radar()
+                    if self.positioning_to_the_center:
+                        # Подлететь к дереву
+                        self.approach(tree_spot_image,
+                                      distance=self.tree_spot_approach_distance if not self.positioning_to_the_center else 0,
+                                      threshold=self.tree_spot_detection_precision,
+                                      stop_action_image=launch_saw_active_image if not self.positioning_to_the_center else None,
+                                      very_slow=True)
+                    else:
+                        # Повернуться к центру дерева
+                        self.rotate_to_radar(image=tree_spot_image, threshold=self.tree_spot_detection_precision)
+                    if not self.do_looting:
+                        self.scale_out_radar()
+
+                    self.clicker.keypress(self.auto_use_all_key)
+
+                    self.start_spam_attack()
+                    self.last_looting_time = time.time()
+
+                time.sleep(self.delay_between_farm_attempts)
+            except win32ui.error:
+                print(datetime.datetime.now(),
+                      f'Случилась внутренняя ошибка windows при определении окна, '
+                      f'будет произведена повторная попытка получить окно {self.clicker.hwnd}.')
+                continue
+            except ValueError:
+                print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
+                beep(sync=True)
+
+    def find_action(self, action_image, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup(self.action_window)
+        return self.clicker.find_image(action_image, window=self.action_window, centers=True, screen=screen, offset=offset)
+
+    def find_equipped_slot(self, equipment_image, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup()
+
+        tech_title_coord = self.clicker.find_image(tech_title, screen=screen, offset=offset)
+        if tech_title_coord is None:
+            return None
+
+        items_from_storage_title_coord = self.clicker.find_image(
+            items_from_storage_title, screen=screen, offset=offset,
+            window=(tech_title_coord[0] - 10, tech_title_coord[1] - 10, -1, -1))
+        if items_from_storage_title_coord is None:
+            return None
+
+        return self.clicker.find_image(
+            equipment_image, screen=screen, offset=offset, centers=True,
+            window=(tech_title_coord[0] - 10, tech_title_coord[1] - 10, -1, items_from_storage_title_coord[1]))
+
+    def find_slot_in_items(self, slot_image, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup()
+
+        items_from_storage_title_coord = self.clicker.find_image(items_from_storage_title, screen=screen, offset=offset)
+        if items_from_storage_title_coord is None:
+            return None
+
+        return self.clicker.find_image(
+            slot_image, screen=screen, offset=offset, centers=True,
+            window=(items_from_storage_title_coord[0] - 10, items_from_storage_title_coord[1] - 10, -1, -1))
+
+    def change_saw(self):
+        print(datetime.datetime.now(), "Замена дровосека")
+
+        self.close_all_windows()
+        self.open_equipment()
+
+        screen, offset = self.clicker.screen_lookup()
+        broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
+        if broken_saw_coord is not None:
+            not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image, screen=screen, offset=offset)
+            if not_broken_saw_coord is not None:
+                self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+                print(datetime.datetime.now(), "Дровосек заменен")
+                time.sleep(1)
+                self.clicker.keypress(self.auto_use_all_key)
+                # time.sleep(30)
+            else:
+                print(datetime.datetime.now(), "Дровосек для замены не был найден")
+                return False
+        else:
+            not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
+            if not_broken_saw_coord is None:
+                print(datetime.datetime.now(), "Дровосек не экипирован, чтобы его можно было заменить")
+                return False
+            else:
+                print(datetime.datetime.now(), "Замена дровосека не требуется")
+
+            self.clicker.keypress(self.auto_use_all_key)
+
+        return True
+
+    def close_all_windows(self):
+        for i in range(5):
+            self.clicker.keypress(self.esc_key)
+
+    def buy_in_shop(self, image_list, amount=1):
+        screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
+        shop_coord = self.clicker.find_image(shop_button, centers=True, screen=screen, offset=offset)
+        if shop_coord is not None:
+            self.clicker.click(*shop_coord)
+
+        shop_item_coord = None
+        for image in image_list:
+            shop_item_coord = self.clicker.wait_for_image(image, centers=True, timeout=self.action_timeout)
+            if shop_item_coord is not None:
+                self.clicker.click(*shop_item_coord)
+            else:
+                print(datetime.datetime.now(), "Не найден пункт в магазине")
+                self.exit()
+                return False
+
+        for i in range(amount):
+            buy_for_coord = self.clicker.wait_for_image(buy_for_button, centers=True, timeout=self.action_timeout)
+            if buy_for_coord is not None:
+                self.clicker.click(*buy_for_coord)
+                print(datetime.datetime.now(), "Куплен предмет в магазине")
+                time.sleep(1)
+            else:
+                print(datetime.datetime.now(), "Не найдена кнопка \"Купить за\" предмета в магазине")
+                self.exit()
+                return False
+
+            if i < amount - 1:
+                self.clicker.click(*shop_item_coord)
+
+        self.exit()
+        return True
+
+    def saw_prep_in_dock(self):
+        self.open_equipment()
+
+        screen, offset = self.clicker.screen_lookup()
+
+        # Проверяем, экипированна ли дровосек в целом
+        broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
+        not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
+        if broken_saw_coord is None and not_broken_saw_coord is None:
+            print(datetime.datetime.now(), "Дровосек не экипирован, фарм будет завершен")
+            self.repeat_cycle_forever = False
+            self.close_all_windows()
+            return False
+
+        # Если дровосек уже экипирован, то пропускаем экипировку
+        saw_equipped_successful = bool(not_broken_saw_coord)
+
+        # Фильтруем по дровосекам
+        if not saw_equipped_successful:
+            equipment_search_box_coord = self.clicker.find_image(equipment_search_box, centers=True,
+                                                                 screen=screen, offset=offset)
+            self.clicker.click(*equipment_search_box_coord)
+            time.sleep(1)
+            self.clicker.send_chars("Дровосек СДА-2")
+            time.sleep(1)
+
+            # Покупка целой пилы (при необходимости) и её установка
+            not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image)
+            if not_broken_saw_coord is not None:
+                self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+            else:
+                self.close_all_windows()
+
+                self.buy_in_shop([shop_equipment_button, buy_saw_big_button], self.additional_saw_amount + 1)
+                time.sleep(1)
+
+                self.open_equipment()
+
+                screen, offset = self.clicker.screen_lookup()
+                equipment_search_box_coord = self.clicker.find_image(equipment_search_box, centers=True,
+                                                                     screen=screen, offset=offset)
+                self.clicker.click(*equipment_search_box_coord)
+                time.sleep(1)
+                self.clicker.send_chars("Дровосек СДА-2")
+                time.sleep(1)
+
+                screen, offset = self.clicker.screen_lookup()
+                broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
+                not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image)
+                if not_broken_saw_coord is None:
+                    print(datetime.datetime.now(), "Не найден дровосек в снаряжении")
+                    saw_equipped_successful = False
+                elif broken_saw_coord is None:
+                    print(datetime.datetime.now(), "Не найден сломанный дровосек в техустройствах")
+                    saw_equipped_successful = False
+                else:
+                    self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+
+        self.close_all_windows()
+
+        if not saw_equipped_successful:
+            print(datetime.datetime.now(), "Не удалось экипировать дровосек, фарм будет завершен")
+            self.repeat_cycle_forever = False
+            return False
+
+        # Далее работа со складом
+        self.open_storage()
+        # Надо закрыть скупку, а то может загораживать при работе со складом
+        self.toggle_buying_up(False)
+
+        # Фильтруем склад на наличие дровосеков
+        storage_search_box_coord = (-150, -115)
+        self.clicker.move_and_click(*storage_search_box_coord)
+        time.sleep(1)
+        self.clicker.send_chars("Дровосек СДА-2")
+        time.sleep(1)
+
+        # Ищем окно со складом
+        screen, offset = self.clicker.screen_lookup()
+        storage_tabs_coord = self.clicker.find_images(storage_tab, screen=screen, offset=offset, min_dist=10)
+        main_storage_tab_coord = max(storage_tabs_coord, key=lambda x: x[0])
+        storage_window = (main_storage_tab_coord[0] - 10, main_storage_tab_coord[1] - 10, -1, self.storage_filters_window[1])
+
+        # Цикл выкидывания сломанных дровосеков
+        thrown_away_saw_count = 0
+        screen, offset = self.clicker.screen_lookup(window=storage_window)
+        broken_saw_storage_coord = self.clicker.find_image(broken_saw_big_storage_image, centers=True,
+                                                           screen=screen, offset=offset)
+        while broken_saw_storage_coord is not None:
+            self.clicker.drag_and_drop(*broken_saw_storage_coord, *(10, 10))
+            drop_button_coord = self.clicker.wait_for_image(drop_button, centers=True, timeout=self.action_timeout)
+            if drop_button_coord is not None:
+                self.clicker.move_and_click(*drop_button_coord)
+                thrown_away_saw_count += 1
+
+            time.sleep(1)
+            screen, offset = self.clicker.screen_lookup(window=storage_window)
+            broken_saw_storage_coord = self.clicker.find_image(broken_saw_big_storage_image, centers=True,
+                                                               screen=screen, offset=offset)
+        if thrown_away_saw_count > 0:
+            print(datetime.datetime.now(), f"Выкинуто {thrown_away_saw_count} сломанных дровосеков")
+        else:
+            print(datetime.datetime.now(), "Сломанных дровосеков не обнаружено")
+
+        # Цикл закидывания в трюм целых пил
+        if self.additional_saw_amount > 0:
+            # screen, offset = self.clicker.screen_lookup(window=storage_window)
+            not_broken_saw_storage_coord = self.clicker.find_image(not_broken_saw_big_image, centers=True,
+                                                                   screen=screen, offset=offset)
+            in_cargo_saw_count = 0
+            for i in range(in_cargo_saw_count, self.additional_saw_amount):
+                if not_broken_saw_storage_coord is None:
+                    print(datetime.datetime.now(), f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм")
+                    break
+
+                self.clicker.drag_and_drop(*not_broken_saw_storage_coord,
+                                           not_broken_saw_storage_coord[0] - 100, not_broken_saw_storage_coord[1])
+                in_cargo_saw_count += 1
+
+                if i != self.additional_saw_amount - 1:
+                    time.sleep(1)
+                    screen, offset = self.clicker.screen_lookup(window=storage_window)
+                    not_broken_saw_storage_coord = self.clicker.find_image(not_broken_saw_big_image, centers=True,
+                                                                           screen=screen, offset=offset)
+
+            # Если недоложили - идем покупаем
+            if in_cargo_saw_count < self.additional_saw_amount:
+                self.exit()
+                time.sleep(1)
+
+                self.buy_in_shop([shop_equipment_button, buy_saw_big_button], self.additional_saw_amount - in_cargo_saw_count)
+                time.sleep(1)
+
+                self.open_storage()
+
+                # Надо закрыть скупку, а то может загораживать при работе со складом
+                self.toggle_buying_up(False)
+
+                # Фильтруем склад на наличие дровосеков
+                storage_search_box_coord = (-150, -115)
+                self.clicker.move_and_click(*storage_search_box_coord)
+                time.sleep(1)
+                self.clicker.send_chars("Дровосек СДА-2")
+                time.sleep(1)
+
+                screen, offset = self.clicker.screen_lookup(window=storage_window)
+                not_broken_saw_storage_coord = self.clicker.find_image(not_broken_saw_big_image, centers=True,
+                                                                       screen=screen, offset=offset)
+                for i in range(in_cargo_saw_count, self.additional_saw_amount):
+                    if not_broken_saw_storage_coord is None:
+                        print(datetime.datetime.now(), f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм, фарм будет завершен")
+                        self.repeat_cycle_forever = False
+                        self.exit()
+                        return False
+
+                    self.clicker.drag_and_drop(*not_broken_saw_storage_coord,
+                                               not_broken_saw_storage_coord[0] - 100, not_broken_saw_storage_coord[1])
+                    in_cargo_saw_count += 1
+
+                    if i != self.additional_saw_amount - 1:
+                        time.sleep(1)
+                        screen, offset = self.clicker.screen_lookup(window=storage_window)
+                        not_broken_saw_storage_coord = self.clicker.find_image(not_broken_saw_big_image, centers=True,
+                                                                               screen=screen, offset=offset)
+
+            if in_cargo_saw_count == self.additional_saw_amount:
+                print(datetime.datetime.now(), "Дровосеки переложены в трюм")
+
+        self.exit()
+
+        return True
+

@@ -2,14 +2,17 @@
     "mode": "Убийство мобов в зоне",
     "available_directions_to_undock": ["з"],
     "to_farm_path": [
-        ["Вылет", []]
+        ["Вылет", []],
+        [[49, 77], "Быстро лететь к цели"]
     ],
     "to_base_path": [
         [[75, 77], "Переход между лабиринтами"]
     ],
     "target_coords_range": [
-        [44, 46],
-        [44, 55]
+        [45, 76],
+        [32, 76],
+        [24, 70],
+        [26, 78]
     ],
     "repeat_cycle_forever": true,
     "direction_bias": 0.1,
@@ -21,8 +24,13 @@
     "stop_at_destination": false,
     "circle_area": false,
     "area_points": [
-        [44, 46],
-        [44, 55]
+        [50, 70],
+        [27, 60],
+        [15, 60],
+        [15, 80],
+        [26, 87],
+        [33, 80],
+        [50, 80]
     ],
     "area_coords": [35, 77],
     "max_distance_away_from_area": 11,

@@ -91,14 +91,20 @@ class ClientButton(BoxLayout):
         self.layout.add_widget(self.log_button)
 
         def process_alive_checker(_):
-            if self.process is not None and not self.process.is_alive():
+            try:
+                if self.process is not None and not self.process.is_alive():
+                    self.stop_event()
+            except (BrokenPipeError, AttributeError):
                 self.stop_event()
 
         Clock.schedule_interval(process_alive_checker, timeout=1)
 
         def stdout_reader(_):
-            while self.process is not None and self.stdout.poll():
-                self.log_text = self.log_text + self.stdout.recv()
+            try:
+                while self.process is not None and self.stdout.poll():
+                    self.log_text = self.log_text + self.stdout.recv()
+            except (BrokenPipeError, AttributeError):
+                pass
 
         Clock.schedule_interval(stdout_reader, timeout=1)
 

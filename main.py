@@ -31,8 +31,9 @@ import winsound
 from pynput import keyboard
 
 from clicker import Clicker
-from player import Player
+from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image
 import win32con
+import win32gui
 
 
 def beep(freq=1000, sync=False):
@@ -46,11 +47,345 @@ def beep(freq=1000, sync=False):
         Thread(target=_beep, daemon=True).start()
 
 
+def get_s2f_hwnds():
+    app_list = find_windows(window_name='Sky2Fly')
+    s2f_actual_windows = [
+        win32gui.FindWindowEx(
+            win32gui.FindWindowEx(parent_hwnd, None, 'AtlAxWin100', None),
+            None, 'MacromediaFlashPlayerActiveX', None
+        )
+        for parent_hwnd in app_list
+    ]
+    return s2f_actual_windows
+
+
+def find_windows(window_name=None, window_class=None):
+    """Finds all windows with a title matching the given name."""
+    if window_name is None and window_class is None:
+        return []
+
+    def enum_windows_callback(hwnd, window_list):
+        name = win32gui.GetWindowText(hwnd)
+        class_name = win32gui.GetClassName(hwnd)
+        visible = win32gui.IsWindowVisible(hwnd)
+        # print(name, class_name, win32gui.GetWindowRect(hwnd), visible)
+        if ((window_name is None or window_name == name)
+                and (window_class is None or window_class == class_name)
+                and visible):
+            window_list.append(hwnd)
+        return True
+
+    result = []
+    win32gui.EnumWindows(enum_windows_callback, result)
+    return result
+
+
 clicker = Clicker(retry_color=np.array([118, 105, 86], dtype=np.uint8))
-clicker.hwnd = 0x3006E
+# clicker.hwnd = 0x3006E
+clicker.hwnd = get_s2f_hwnds()[0]
 player = Player(clicker=clicker)
-autofire = True
+autofire = False
 quest = False
+
+if autofire:
+    def click_task():
+        while True:
+            with keyboard.Events() as events:
+                event = events.get(.1)
+                if isinstance(event, keyboard.Events.Press) and event.key == keyboard.Key.ctrl_l:
+                    if attack:
+                        attack.pop()
+                    else:
+                        attack.append(True)
+
+    Thread(target=click_task, daemon=True).start()
+    attack_delay = .6
+    attack = []
+    last_attack_time = time.time()
+    while True:
+        if time.time() - last_attack_time > attack_delay and attack:
+            clicker.keypress(player.fire_key)
+            last_attack_time = time.time()
+            # clicker.screen_lookup(window=(-225, 15, -40, 200))
+            player.loot()
+        time.sleep(min(.1, max(0, time.time() - last_attack_time)))
+
+if quest:
+    import cv2
+
+
+    def resource_path(relative_path):
+        try:
+            base_path = sys._MEIPASS
+        except AttributeError:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
+
+
+    sushi_img = cv2.imread(resource_path(os.path.join('images', 'sushi.PNG')))
+    decline_img = cv2.imread(resource_path(os.path.join('images', 'decline.PNG')))
+    fiola_img = cv2.imread(resource_path(os.path.join('images', 'Fiola.PNG')))
+    end_dialog_img = cv2.imread(resource_path(os.path.join('images', 'end_dialog.PNG')))
+    continue_img = cv2.imread(resource_path(os.path.join('images', 'continue.PNG')))
+    while True:
+        clicker.screen_lookup()
+        clicker.reset_keyboard()
+        window = (850, 400, 1250, 750)
+
+        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
+        time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img))
+        time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        continue_coord = clicker.find_image(continue_img)
+        if continue_coord:
+            clicker.click(*continue_coord)
+            time.sleep(1)
+            clicker.screen_lookup(window=window)
+            clicker.click(*clicker.find_image(sushi_img))
+            time.sleep(1)
+
+        target_npc = None
+        while target_npc is None:
+            clicker.screen_lookup(window=window)
+            target_npc = clicker.find_image(fiola_img)
+            if target_npc is None:
+                clicker.screen_lookup(window=window)
+                clicker.click(*clicker.find_image(decline_img))
+                time.sleep(1)
+                clicker.screen_lookup(window=window)
+                clicker.click(*clicker.find_image(sushi_img))
+                time.sleep(1)
+            else:
+                clicker.click(*clicker.find_image(sushi_img))
+                time.sleep(1)
+
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(end_dialog_img))
+
+        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=2)
+        player.fly_to(31, 70, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
+        time.sleep(1)
+
+        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img))
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(sushi_img))
+        time.sleep(1)
+        clicker.screen_lookup(window=window)
+        clicker.click(*clicker.find_image(end_dialog_img))
+
+        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=1)
+        player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
+        time.sleep(1)
+
+
+print(player.saw_prep_in_dock())
+
+# directions = []
+# max_dist = 0
+# last_max_dist = max_dist
+# min_dist = 10
+# last_min_dist = min_dist
+# while True:
+#     player.lookup_direction()
+#     if player.player_direction not in directions:
+#         directions.append((player.player_direction, player.player_angle))
+#         directions.sort(key=lambda d: d[1])
+#         # print(directions)
+#         if len(directions) > 1:
+#             max_dist = max(math.dist(a[0], b[0]) for a, b in zip(directions[1:], directions))
+#             min_dist = min(math.dist(a[0], b[0]) for a, b in zip(directions[1:], directions))
+#
+#             # print_diff = False
+#
+#             # if max_dist > last_max_dist:
+#             #     last_max_dist = max_dist
+#             #     print_diff = True
+#             #
+#             # if min_dist < last_min_dist:
+#             #     last_min_dist = min_dist
+#             #     print_diff = True
+#             #
+#             # if print_diff:
+#             print(min_dist, max_dist)
+#
+#     # print(player.player_angle)
+#     time.sleep(.05)
+# player.clicker.screen_lookup()
+# player.clicker.scroll(x=516, y=238)
+# player.clicker.scroll(-1000, x=900, y=400)
+# player.fly_from_base_to("На платформу Фейра-ди-Сантана")
+# exit()
+# for i in range(10):
+#     player.scale_in_radar()
+#     player.scale_out_radar()
+    # player.activate_ability(1)
+
+# player.approach(vortex_img, threshold=.2, stop_action_image=fly_in_button, stop_distance_diff=4)
+# player.fly_through_vortex()
+
+# player.fly_route([
+#     ["Вылет", ["ю"]],
+#     [[86, 47], "Быстро лететь к цели"],
+#     ["Пролететь через вихрь", ""],
+#     [[84, 73], "Быстро лететь к цели"],
+#     [[70, 92], "Быстро лететь к цели"],
+#     [[40, 91], "Переход между лабиринтами"],
+#     [[50, 50], "Переход между лабиринтами"],
+# ])
+
+# import cv2
+# tree_image = cv2.imread(os.path.join('images', 'tree_spot.png'))
+# # tree_image = cv2.imread(os.path.join('images', 'tree_spot_orange.png'))
+# launch_saw_image = cv2.imread(os.path.join('images', 'launch_saw_inactive_button.png'))
+# player.approach(image=tree_image,
+#                 distance=player.fishing_spot_approach_distance,
+#                 threshold=player.fishing_spot_detection_precision,
+#                 stop_action_image=launch_saw_image,
+#                 very_slow=True,
+#                 # correct_rotation=False
+#                 )
+
+exit()
+from image_finder import find_template_on_image
+# origin_image = imread('pht.jpg')
+# centers = np.array(find_template_on_image(origin_image, tunnel_img, circle_mask=False, centers=True, threshold=.7, min_dist=None))
+# print(centers)
+# origin_image = np.array(origin_image[:, :, ::-1])
+# origin_image[centers[:, 1], centers[:, 0]] = [255, 0, 0]
+# from imaginary import ImageShower
+# shower = ImageShower()
+# shower.display(origin_image)
+# input()
+# exit()
+# player.fly_to_base_trough_tunnel(1)
+# exit()
+# player.approach(tunnel_img, threshold=player.tunnel_detection_precision, distance=5)
+#
+# exit()
+
+# player.lookup_direction()
+# exit()
+from imaginary import ImageShower
+shower = ImageShower()
+hashes = dict()
+
+
+player.shower = shower
+while True:
+    # print(player.set_speed_arm_value(-1))
+    # print(player.set_low_speed())
+    # start = time.time()
+    # player.lookup_direction()
+
+    screen, offset = clicker.screen_lookup(window=(-225, 15, -40, 200))
+
+    radar = screen
+    centers = np.array(find_template_on_image(radar, vortex_img, circle_mask=False, centers=True, threshold=.2, min_dist=None))
+    radar = radar[:, :, ::-1]
+    if len(centers) > 0:
+        radar[centers[:, 1], centers[:, 0]] = [255, 0, 0]
+    else:
+        print('FUCK')
+    shower.display(radar)
+    # ld_time = time.time() - start
+    # print('ld', ld_time)
+    # coords = [
+    #     (-136, 104), (-135, 104), (-134, 104), (-133, 104), (-132, 104), (-131, 104),
+    #     (-136, 105),                                                     (-131, 105),
+    #     (-136, 106),                                                     (-131, 106),
+    #     (-136, 107),                                                     (-131, 107),
+    #     (-136, 108),                                                     (-131, 108),
+    #     (-136, 109), (-135, 109), (-134, 109), (-133, 109), (-132, 109), (-131, 109),
+    # ]
+    # start = time.time()
+    # clicker.screen_lookup(window=(-141, 99, -126, 114))
+    # clicker.screen_lookup(window=(-134, 106, -133, 107))
+
+
+    # print(hashes[angle_hash], hashes[angle_hash] == player.player_angle)
+    # clicker.fill(window=(-135, 105, -132, 108), color=(0, 0, 0))
+    # pixel_values = np.array([clicker.pixel(*pxl) for pxl in pixels])
+    # pixel = pixels[np.argmax(pixel_values[:, 1])]
+    # target_pixel = (30, 190, 25)
+    # diff = 25
+    # for coord in coords:
+    #     pixel = clicker.pixel(*coord)
+    #     if all(abs(pixel - target_pixel) < diff):
+    #         pixel = clicker._resolve_coord(*coord)
+    #         break
+    # clicker.fill(window=(*pixel, *pixel), color=(255, 0, 0))
+
+
+    # pixels = np.array(clicker.find_pixels(window=(-136, 104, -131, 109), color=target_pixel, threshold=0.87))
+    # print(np.polyfit(pixels[:, 0], pixels[:, 1], 1)[0])
+    # exit()
+    # pixels = clicker.find_pixels(window=(-136, 104, -131, 109), color=target_pixel, threshold=0.9)
+    # pixel_window = (min(p[0] for p in pixels) - 1, min(p[1] for p in pixels) - 1, max(p[0] for p in pixels) + 1, max(p[1] for p in pixels) + 1)
+    # pixels.extend(clicker.find_pixels(window=pixel_window, color=target_pixel, threshold=0.9))
+    # # print(clicker.pixel(*pixel))
+    #
+    # for pixel in pixels:
+    #     clicker.fill(window=(*pixel, *pixel), color=(255, 0, 0))
+    #
+    # print({p: math.dist(p, player.center) for p in set(pixels)})
+    # pixel = max(set(pixels), key=lambda x: math.dist(player.center, x))
+    # clicker.fill(window=(*pixel, *pixel), color=(0, 0, 255))
+
+    # nld_time = time.time() - start
+    # print('nld', nld_time)
+    # print(nld_time / ld_time)
+    # clicker.fill(window=(*pixel, *pixel), color=(255, 0, 0))
+    # pxl = clicker.find_pixel(window=(-136, 104, -131, 109), color=())
+    # for pxl in clicker.find_pixels(window=(-136, 104, -131, 109), color=):
+    #     clicker.fill(window=(*pxl, *pxl), color=(0, 0, 0))
+    # clicker.fill(window=(-136, 104, -131, 109), color=(0, 0, 0))
+    # shower.display(clicker.screen[:,:,::-1])
+    time.sleep(.1)
+exit()
+
+
+# def broken(clicker):
+#     for i in range(30):
+#         clicker.screen_lookup()
+#
+# if __name__ == '__main__':
+#     from multiprocessing import freeze_support
+#     freeze_support()
+#     from multiprocessing import Process
+#     threads = [Process(target=broken, args=(Clicker(retry_color=np.array([118, 105, 86], dtype=np.uint8), hwnd=get_s2f_hwnds()[i]), )) for i in range(10)]
+#     start = time.time()
+#     for thread in threads:
+#         thread.start()
+#     for thread in threads:
+#         thread.join()
+#     print(time.time() - start)
+#
+# exit()
+
+
+# fishing_spot = cv2.imread(os.path.join('images', 'fishing_spot.png'))
+# start_catch_img = cv2.imread(os.path.join('images', 'start_fishing.png'))
+# player.approach(image=fishing_spot,
+#                 distance=player.fishing_spot_approach_distance,
+#                 threshold=player.fishing_spot_detection_precision,
+#                 stop_action_image=start_catch_img,
+#                 # very_slow=True,
+#                 # correct_rotation=False
+#                 )
+# while True:
+# player.rotate_to_radar(image=tree_image)
+# player.force_right()
+
+exit()
 
 # import cv2
 # fishing_image = cv2.imread(os.path.join('images', 'fishing_spot.png'))
@@ -70,7 +405,7 @@ quest = False
 # Задаем значения по умолчанию, они все равно будут переопределяться пресетом
 # Путь к месту фарма
 player.to_farm_path = [
-    ('Перелететь', 'ФАРМ МЕДУЗ НЕ ТРОГАТЬ'),  # С базы в туннель
+    ('Перелететь', 'ФАРМ МЕДУЗ НЕ ТРОГАТЬ'),  # С базы в тоннель
     ((29, 15), 'Переход между лабиринтами'),  # С 4 омута в 5
     ((45, 48), 'Быстро лететь к цели'),  # Прилет к медузкам
 ]
@@ -78,109 +413,14 @@ player.to_farm_path = [
 player.to_base_path = [
     ((49, 51), 'Переход между лабиринтами'),  # С 5 омута в 4
     ((34, 9), 'Лететь к цели'),  # Подлет к туннелю
-    ('В туннель', 'База клана'),  # С туннеля на базу
+    ('В тоннель', 'База клана'),  # С туннеля на базу
 ]
 player.target_coords_range = []
 player.repeat_cycle_forever = False
 
 
-def click_task():
-    while True:
-        with keyboard.Events() as events:
-            event = events.get(.1)
-            if isinstance(event, keyboard.Events.Press) and event.key == keyboard.Key.ctrl_l:
-                if attack:
-                    attack.pop()
-                else:
-                    attack.append(True)
 
 
-if autofire:
-    Thread(target=click_task, daemon=True).start()
-    attack_delay = .6
-    attack = []
-    last_attack_time = time.time()
-    while True:
-        if time.time() - last_attack_time > attack_delay and attack:
-            clicker.keypress(player.fire_key)
-            last_attack_time = time.time()
-        # clicker.screen_lookup(window=(-225, 15, -40, 200))
-        # player.loot()
-        time.sleep(min(.1, max(0, time.time() - last_attack_time)))
-
-if quest:
-    import cv2
-
-    def resource_path(relative_path):
-        try:
-            base_path = sys._MEIPASS
-        except AttributeError:
-            base_path = os.path.abspath(".")
-
-        return os.path.join(base_path, relative_path)
-
-    sushi_img = cv2.imread(resource_path(os.path.join('images', 'sushi.PNG')))
-    decline_img = cv2.imread(resource_path(os.path.join('images', 'decline.PNG')))
-    fiola_img = cv2.imread(resource_path(os.path.join('images', 'Fiola.PNG')))
-    end_dialog_img = cv2.imread(resource_path(os.path.join('images', 'end_dialog.PNG')))
-    continue_img = cv2.imread(resource_path(os.path.join('images', 'continue.PNG')))
-    while True:
-        clicker.screen_lookup()
-        clicker.reset_keyboard()
-        window = (850, 400, 1250, 750)
-    
-        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
-        time.sleep(1)
-
-        clicker.screen_lookup(window=window)
-        clicker.click(*clicker.find_image(sushi_img)[0])
-        time.sleep(1)
-
-        clicker.screen_lookup(window=window)
-        continue_coord = next(iter(clicker.find_image(continue_img)), None)
-        if continue_coord:
-            clicker.click(*continue_coord)
-            time.sleep(1)
-            clicker.screen_lookup(window=window)
-            clicker.click(*clicker.find_image(sushi_img)[0])
-            time.sleep(1)
-
-        target_npc = None
-        while target_npc is None:
-            clicker.screen_lookup(window=window)
-            target_npc = next(iter(clicker.find_image(fiola_img)), None)
-            if target_npc is None:
-                clicker.screen_lookup(window=window)
-                clicker.click(*clicker.find_image(decline_img)[0])
-                time.sleep(1)
-                clicker.screen_lookup(window=window)
-                clicker.click(*clicker.find_image(sushi_img)[0])
-                time.sleep(1)
-            else:
-                clicker.click(*clicker.find_image(sushi_img)[0])
-                time.sleep(1)
-
-        clicker.screen_lookup(window=window)
-        clicker.click(*clicker.find_image(end_dialog_img)[0])
-
-        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=2)
-        player.fly_to(31, 70, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
-        time.sleep(1)
-
-        clicker.click(int(clicker.screen_width / 2), int(clicker.screen_height * 2 / 5))
-        time.sleep(1)
-        clicker.screen_lookup(window=window)
-        clicker.click(*clicker.find_image(sushi_img)[0])
-        time.sleep(1)
-        clicker.screen_lookup(window=window)
-        clicker.click(*clicker.find_image(sushi_img)[0])
-        time.sleep(1)
-        clicker.screen_lookup(window=window)
-        clicker.click(*clicker.find_image(end_dialog_img)[0])
-
-        player.fly_to(30, 62, "Быстро лететь к цели", target_bias=1)
-        player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
-        time.sleep(1)
 
 
 # player.target_coords = (50, 50)
@@ -231,7 +471,7 @@ if quest:
 
 # clicker.screen_lookup(window=(-225, 15, -40, 200))
 # tunnel_img = cv2.imread('images/tunnel.bmp')
-# tunnels = clicker.find_image(tunnel_img, threshold=.8)
+# tunnels = clicker.find_images(tunnel_img, threshold=.8)
 # for tunnel in tunnels:
 #     print(tunnel)
 #     clicker.fill(window=(*tunnel, tunnel[0] + tunnel_img.shape[1], tunnel[1] + tunnel_img.shape[0]), color=(0, 255, 0))
@@ -312,10 +552,8 @@ while True:
         undock_with_overweight = True
     else:
         time.sleep(1)
-        # Отдаляем радар
-        for i in range(7):
-            clicker.keypress('^-')
-        time.sleep(2)
+        player.scale_out_radar()
+        time.sleep(1)
         # Активируем умения
         player.activate_abilities()
 

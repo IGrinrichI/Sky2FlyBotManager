@@ -1,0 +1,70 @@
+{
+    "mode": "Дерево",
+    "available_directions_to_undock": ["сз"],
+    "to_farm_path": [
+        ["Вылет", []],
+        [[58, 65], "Быстро лететь к цели"]
+    ],
+    "to_base_path": [
+        [[81, 77], "Переход между лабиринтами"]
+    ],
+    "check_state_in_city_before_farm": true,
+    "repeat_cycle_forever": true,
+
+    "direction_bias": 0.1,
+    "warp_bias": 5,
+    "target_bias": 1,
+    "stuck_difference": 1.5,
+    "stuck_delay": 3,
+
+    "stop_at_destination": false,
+    "circle_area": true,
+    "area_points": [],
+    "area_coords": [60, 63],
+    "max_distance_away_from_area": 6,
+    "min_distance_from_area": -1,
+
+    "max_farm_time": 3600,
+    "delay_between_farm_attempts": 0.5,
+
+    "tree_spot_detection_precision": 0.65,
+    "tree_spot_approach_distance": 4,
+    "tree_spot_max_bad_cutting_tries": 3,
+    "change_saw_after_no_looting_time": 30,
+    "additional_saw_amount": 1,
+    "positioning_to_the_center": false,
+
+    "spam_attack": true,
+    "spam_attack_interval": 0.6,
+    "kill_enemies": true,
+    "enemy_types": ["agressive"],
+    "enemy_focusing_max_time": 1,
+    "smart_targeting": false,
+    "fire_when_smart_targeting": true,
+    "jump_forward_on_lose_target": false,
+
+    "do_drop_chests": true,
+    "do_looting": true,
+    "ignore_overweight": true,
+    "loot_distance": 100,
+    "stop_if_enemy_in_front_of_ship": true,
+    "enemy_kill_timeout": 10,
+
+    "death_check_delay": 10,
+    "after_death_wait_time_range": [300, 3600],
+
+    "abilities": [1],
+
+    "force_key": "f",
+    "force_forward_key": "q",
+    "force_left_key": "x",
+    "force_right_key": "c",
+    "forward_key": "w",
+    "break_target_key": "z",
+    "fire_key": " ",
+    "inventory_key": "i",
+    "auto_use_all_key": "~",
+    "radar_in_key": "[Ctrl]+",
+    "radar_out_key": "[Ctrl]-",
+    "press_esc_after_radar_action": false
+}

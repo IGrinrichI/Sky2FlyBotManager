@@ -1,5 +1,6 @@
 {
-    "available_directions_to_undock": ["с", "ю", "в", "з", "св", "сз", "юв", "юз"],
+    "mode": "Одуванчики",
+    "available_directions_to_undock": ["сз"],
     "to_farm_path": [
         ["Вылет", []]
     ],
@@ -7,43 +8,57 @@
         [[57, 37], "Переход между лабиринтами"]
     ],
     "target_coords_range": [
-        [52, 30],
-        [52, 43],
-        [57, 45],
-        [63, 43],
-        [63, 31],
-        [57, 28]
+        [53, 32],
+        [52, 28],
+        [56, 25],
+        [62, 25],
+        [60, 28],
+        [59, 31],
+        [62, 34],
+        [65, 33],
+        [62, 38],
+        [66, 39],
+        [63, 41],
+        [62, 42],
+        [66, 45],
+        [63, 47],
+        [61, 45],
+        [58, 44],
+        [57, 48],
+        [57, 48],
+        [60, 50],
+        [55, 50],
+        [52, 48],
+        [53, 42],
+        [51, 39],
+        [48, 38],
+        [49, 32],
+        [52, 36]
     ],
     "repeat_cycle_forever": true,
-
+    
     "direction_bias": 0.1,
     "warp_bias": 5,
-    "target_bias": 3,
+    "target_bias": 1.5,
     "stuck_difference": 1.5,
     "stuck_delay": 3,
-
-    "stop_at_destination": false,
+    
+    "stop_at_destination": true,
     "circle_area": true,
     "area_points": [],
     "area_coords": [57, 37],
     "max_distance_away_from_area": 11,
     "min_distance_from_area": 4,
-
+    
     "max_farm_time": 600,
-
-    "enemy_types": ["neutral"],
-    "enemy_focusing_max_time": 1,
-    "smart_targeting": true,
-    "fire_when_smart_targeting": false,
-    "jump_forward_on_lose_target": true,
     "do_drop_chests": false,
-    "stop_if_enemy_in_front_of_ship": true,
-    "enemy_kill_timeout": 3,
+    "stop_if_enemy_in_front_of_ship": false,
+
+    "dandelion_detection_precision": 0.85,
+    "dandelion_approach_distance": 10,
 
     "death_check_delay": 10,
     "after_death_wait_time_range": [300, 3600],
-
-    "abilities": [],
 
     "force_key": "f",
     "force_forward_key": "q",

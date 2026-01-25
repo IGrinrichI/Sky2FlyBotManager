@@ -29,7 +29,7 @@
     "max_distance_away_from_area": 11,
     "min_distance_from_area": 7,
 
-    "max_farm_time": 600,
+    "max_farm_time": 60,
 
     "enemy_types": ["neutral"],
     "enemy_focusing_max_time": 1,

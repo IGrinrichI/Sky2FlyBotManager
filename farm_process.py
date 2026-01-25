@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import datetime
@@ -48,6 +49,9 @@ def farm_process(hwnd, preset, trial_time, child_conn):
         try:
             player.lookup_coords()
         except ValueError:
+            if player.check_state_in_city_before_farm:
+                player.in_city_actions()
+
             try:
                 player.fly_route(player.to_farm_path)
             except ValueError:
@@ -59,9 +63,7 @@ def farm_process(hwnd, preset, trial_time, child_conn):
         else:
             time.sleep(1)
             # Отдаляем радар
-            for i in range(7):
-                clicker.keypress('^-')
-            time.sleep(2)
+            player.scale_out_radar()
             # Активируем умения
             player.activate_abilities()
 
@@ -87,24 +89,24 @@ def farm_process(hwnd, preset, trial_time, child_conn):
 
         print(datetime.datetime.now(), 'В городе')
 
-        time.sleep(1)
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        time.sleep(1)
-        player.store_resources_and_service()
-        time.sleep(1)
-        player.reload_gasholders()
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы закрыть менюшки
-        time.sleep(1)
+        player.in_city_actions()
 
-        if not player.repeat_cycle_forever or trial_time <= time.time():
+        if (not player.repeat_cycle_forever and not player.next_preset) or trial_time <= time.time():
             beep(1000, sync=True)
             beep(1100, sync=True)
             beep(1200, sync=True)
             break
+
+        if not player.repeat_cycle_forever and player.next_preset:
+            next_preset = player.next_preset + ('.preset' if not player.next_preset.endswith('.preset') else '')
+            if not hasattr(sys, '_MEIPASS'):
+                next_preset = os.path.join('presets', next_preset)
+            # Не знаю как лучше перетирать данные с прошлых пресетов, поэтому пересоздаем игрока
+            player = Player(clicker=clicker)
+            # Выставляем пресет
+            player.load_preset(next_preset)
+            # Вычисляем границы поля фарма
+            player.calc_edges()
 
 
 def get_farm_process(hwnd, preset, trial_time):

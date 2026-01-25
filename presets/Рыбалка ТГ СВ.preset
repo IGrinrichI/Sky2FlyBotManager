@@ -1,20 +1,23 @@
 {
     "mode": "Рыбалка",
-    "available_directions_to_undock": ["з"],
+    "available_directions_to_undock": ["св"],
     "to_farm_path": [
         ["Вылет", []],
-        [[51, 55], "Переход между лабиринтами"],
-        [[83, 12], "Лететь к цели"]
+        [[45, 12], "Быстро лететь к цели"],
+        [[49, 12], "Быстро лететь к цели"],
+        [[55, 8], "Быстро лететь к цели"]
     ],
     "to_base_path": [
-        [[90, 11], "Переход между лабиринтами"],
-        [[74, 56], "Переход между лабиринтами"]
+        [[53, 11], "Быстро лететь к цели"],
+        [[48, 11], "Быстро лететь к цели"],
+        [[41, 12], "Быстро лететь к цели"],
+        [[27, 26], "Переход между лабиринтами"]
     ],
     "repeat_cycle_forever": true,
     
     "direction_bias": 0.1,
     "warp_bias": 7,
-    "target_bias": 0,
+    "target_bias": 1,
     "stuck_difference": 1.5,
     "stuck_delay": 3,
     
@@ -27,7 +30,7 @@
 
     "fishing_spot_detection_precision": 0.65,
     "fishing_spot_approach_distance": 4,
-    "fishing_spot_max_bad_fishing_tries": 1,
+    "fishing_spot_max_bad_fishing_tries": 3,
 
     "death_check_delay": 10,
     "after_death_wait_time_range": [300, 3600],

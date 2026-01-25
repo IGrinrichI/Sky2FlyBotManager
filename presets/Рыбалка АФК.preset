@@ -16,6 +16,7 @@
     "stop_at_destination": true,
     
     "max_farm_time": 99999,
+    "delay_between_farm_attempts": 5,
     "do_looting": false,
     "do_drop_chests": false,
     "ignore_overweight": true,
