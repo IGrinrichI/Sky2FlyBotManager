@@ -2528,7 +2528,7 @@ class Player:
 
                 screen, offset = self.clicker.screen_lookup()
                 broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
-                not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image)
+                not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image, screen=screen, offset=offset)
                 if not_broken_saw_coord is None:
                     print(datetime.datetime.now(), "Не найден дровосек в снаряжении")
                     saw_equipped_successful = False
@@ -2537,6 +2537,7 @@ class Player:
                     saw_equipped_successful = False
                 else:
                     self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+                    saw_equipped_successful = True
 
         self.close_all_windows()
 
