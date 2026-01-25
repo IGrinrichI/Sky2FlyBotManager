@@ -31,7 +31,8 @@ import winsound
 from pynput import keyboard
 
 from clicker import Clicker
-from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, reload_button
+from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, \
+    reload_button, not_broken_saw_big_image
 import win32con
 import win32gui
 
@@ -186,6 +187,38 @@ if quest:
         player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
         time.sleep(1)
 
+
+# print(player.find_slot_in_items(not_broken_saw_big_image))
+
+# print(player.attribute_cross_naming_en_ru)
+# print(player.attribute_cross_naming_ru_en)
+#
+#
+# preset_dir = 'presets'
+# preset_path_list = (os.path.join(preset_dir, preset_name) for preset_name in os.listdir(preset_dir))
+#
+# for preset_path in preset_path_list:
+#     with open(preset_path, 'r', encoding='utf8') as f:
+#         file_data = f.read()
+#         for parameter, replacement in player.attribute_cross_naming_en_ru.items():
+#             file_data = file_data.replace(parameter, replacement.capitalize(), 1)
+#
+#     with open(preset_path, 'w', encoding='utf8') as ff:
+#         ff.write(file_data)
+
+# with open("Инструкция по пресетам.txt", "r", encoding="utf8") as f:
+#     file_data = f.read()
+#     for parameter, replacement in player.attribute_cross_naming_en_ru.items():
+#         index = file_data.find(parameter)
+#         if index == -1:
+#             continue
+#
+#         index += len(parameter) + len('" или "')
+#         if file_data[index] == '"':
+#             file_data = file_data[:index] + replacement.capitalize() + file_data[index:]
+#
+#     with open("Инструкция по пресетам_.txt", "w", encoding="utf8") as ff:
+#         ff.write(file_data)
 
 # coord = clicker.wait_for_image(reload_button, threshold=.8, timeout=1)
 # print(coord[0] + 183 + 0, coord[1] - 318 + 23)

@@ -296,6 +296,148 @@ class Player:
     vortex_detection_precision = .2
     vortex_approach_distance = 10
 
+    attribute_cross_naming_en_ru = {
+        "mode": "режим работы",
+        "next_preset": "следующий пресет",
+        "check_state_in_city_before_farm": "выполнять проверку в начале перед вылетом",
+        "warp_bias": "изменение координат, считающееся перелетом в другую локацию",
+        "target_bias": "отклонение от координат перелетов",
+        "stuck_delay": "задержка, после которой считается, что корабль застрял",
+        "stuck_difference": "разница координат, считающаяся застреванием",
+        # "rotating": "",
+        # "rotation_direction": "",
+        # "rotation_angle": "",
+        # "rotating_to": "",
+        # "rotation_button_pressed": "",
+        # "update_rotation_lock": "",
+        # "stop_rotate_event": "",
+        # "rotation_stopped_event": "",
+        # "rotation_thread": "",
+        "direction_bias": "отклонение от заданного направления/точность поворота",
+        # "radar_coords": "",
+        # "target_coords": "",
+        # "target_direction": "",
+        # "target_angle": "",
+        # "target_distance": "",
+        # "player_direction": "",
+        # "player_angle": "",
+        # "player_direction_certain": "",
+        "circle_area": "зона фарма является кругом/бубликом",
+        "area_points": "точки зоны фарма в случае, если зона не является кругом, а многоугольником",
+        # "area_edges": "",
+        "area_coords": "центр зоны фарма",
+        # "area_direction": "",
+        # "distance_to_area": "",
+        "min_distance_from_area": "минимальное расстояние зоны от её центра",
+        "max_distance_away_from_area": "максимальное расстояние зоны от её центра",
+        
+        "to_farm_path": "путь к месту фарма",
+        "to_base_path": "путь в док",
+        "target_coords_range": "список координат, по которым будет осуществляться пермещение в процессе фарма",
+        "repeat_cycle_forever": "повторять цикл фарма бесконечно",
+        
+        # "farm_start_time": "",
+        "max_farm_time": "максимальное время фарма",
+        "delay_between_farm_attempts": "задержка между циклами процесса фарма",
+        
+        "abilities": "способности для активации",
+        "kill_enemies": "убивать врагов",
+        "spam_attack": "спамить атаку",
+        # "spam_attack_stop_event": "",
+        "spam_attack_interval": "интервал атак при спаме",
+        # "last_attack_time": "",
+        "enemy_types": "типы врагов для убийства",
+        "smart_targeting": "умное выделение цели",
+        "fire_when_smart_targeting": "спамить атаку, когда цель выделена",
+        "do_drop_chests": "выкидывать сундуки",
+        "loot_on_fly": "собирать ресурсы, когда летишь куда-то",
+        "do_looting": "собирать ресурсы",
+        # "last_looting_time": "",
+        "loot_distance": "дистанция подбора",
+        "ignore_overweight": "игнорировать перегруз",
+        "stop_if_enemy_in_front_of_ship": "останавливаться, если перед кораблем враг",
+        "stop_at_destination": "останавливаться при достижении точки(-ек) назначения",
+        "jump_forward_on_lose_target": "ускоряться вперед, когда цель потеряна",
+        # "enemy_focused": "",
+        # "last_time_enemy_focused": "",
+        "enemy_focusing_max_time": "максимальное время на захват/поиск цели",
+        # "enemy_focused_at": "",
+        "enemy_kill_timeout": "максимальное время на убийство цели",
+        
+        "death_check_delay": "задержка между проверками подбит ли корабль",
+        # "death_check_last_time": "",
+        "after_death_wait_time_range": "диапазон времени в секундах, сколько ждать после смерти игрока перед началом нового цикла",
+        
+        "available_directions_to_undock": "доступные для вылета направления",
+        # "coords_to_undock": "",
+        "fly_trough_tunnel_tries_amount": "количество попыток воспользоваться тоннелем",
+        
+        "action_timeout": "таймаут на ожидание открытия окон",
+        "scale_in_out_radar_delay": "задержка после масштабирования радара",
+        # "scaled_radar": "",
+        # "scaled_value": "",
+        # "radar_to_global_ratio": "",
+        # "cx": "",
+        # "cy": "",
+        # "_center": "",
+        # "r": "",
+        # "w": "",
+        # "wr": "",
+        # "green_buff": "",
+        # "action_window": "",
+        
+        # "storage_filters_window": "",
+        # "city_services_window": "",
+        
+        "press_esc_after_radar_action": "нажимать клавишу esc после взаимодействия с радаром",
+        "force_key": "форсаж вперед (расходуется охладитель)",
+        "force_forward_key": "ускорение вперед",
+        "force_left_key": "ускорение влево",
+        "force_right_key": "ускорение вправо",
+        "forward_key": "лететь вперед",
+        "break_target_key": "сбросить цель",
+        "fire_key": "залп из всех орудий",
+        "inventory_key": "трюм/корабль",
+        "auto_use_all_key": "вкл. автоиспользование всех техустройств",
+        "radar_in_key": "масштаб радара крупнее",
+        "radar_out_key": "масштаб радара мельче",
+        "activate_ability_1_key": "активное умение 1",
+        "activate_ability_2_key": "активное умение 2",
+        "activate_ability_3_key": "активное умение 3",
+        "activate_ability_4_key": "активное умение 4",
+        "activate_ability_5_key": "активное умение 5",
+        "activate_ability_6_key": "активное умение 6",
+        "activate_ability_7_key": "активное умение 7",
+        "activate_ability_8_key": "активное умение 8",
+        "activate_ability_9_key": "активное умение 9",
+        # "esc_key": "",
+        # "enter_key": "",
+        
+        # "_ocr_reader": "",
+        
+        "positioning_to_the_center": "располагать корабль в центре области фарма",
+        
+        "tunnel_detection_precision": "точность определения тоннеля",
+        "tunnel_approach_distance": "дистанция приближения тоннелю",
+        
+        "fishing_spot_detection_precision": "точность определения рыболовного места",
+        "fishing_spot_approach_distance": "дистанция приближения к рыболовному месту",
+        "fishing_spot_max_bad_fishing_tries": "количество попыток вернуться на рыболовное место",
+        
+        "tree_spot_detection_precision": "точность определения дерева",
+        "tree_spot_approach_distance": "дистанция приближения к дереву",
+        "tree_spot_max_bad_cutting_tries": "количество попыток вернуться на дерево",
+        "change_saw_after_no_looting_time": "таймаут на замену дровосека, если не замечено ресурсов для подбора",
+        "additional_saw_amount": "количество дровосеков, которые берутся в трюм перед вылетом",
+        
+        "dandelion_detection_precision": "точность определения одуванчика",
+        "dandelion_approach_distance": "дистанция приближения к одуванчику",
+        
+        "vortex_detection_precision": "точность определения вихря",
+        "vortex_approach_distance": "дистанция приближения к вихрю",
+    }
+    attribute_cross_naming_ru_en = {value: key for key, value in attribute_cross_naming_en_ru.items()}
+
     def __init__(self, clicker):
         self.clicker = clicker
 
@@ -1464,7 +1606,12 @@ class Player:
         with open(file_path, 'r', encoding='utf8') as f:
             data = json.loads(f.read())
             for attribute, value in data.items():
-                setattr(self, attribute, value)
+                if attribute.lower() in self.attribute_cross_naming_ru_en:
+                    setattr(self, self.attribute_cross_naming_ru_en[attribute.lower()], value)
+                elif attribute.lower() in self.attribute_cross_naming_en_ru:
+                    setattr(self, attribute.lower(), value)
+                else:
+                    print(datetime.datetime.now(), f"Внимание! Параметр \"{attribute}\" не поддерживается!")
 
     def find_text(self, text, window=None):
         screen, offset = self.clicker.screen_lookup(window=window)
