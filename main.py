@@ -31,7 +31,7 @@ import winsound
 from pynput import keyboard
 
 from clicker import Clicker
-from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image
+from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, reload_button
 import win32con
 import win32gui
 
@@ -187,7 +187,9 @@ if quest:
         time.sleep(1)
 
 
-print(player.saw_prep_in_dock())
+# coord = clicker.wait_for_image(reload_button, threshold=.8, timeout=1)
+# print(coord[0] + 183 + 0, coord[1] - 318 + 23)
+# print(player.saw_prep_in_dock())
 
 # directions = []
 # max_dist = 0

@@ -501,21 +501,25 @@ class Player:
             return False
 
         screen, offset = self.clicker.screen_lookup()
-        gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
+        gasholders_to_reload_window = self.clicker.find_image(equipment_tab, screen=screen, offset=offset)
+        gasholders_to_reload_window = (0, gasholders_to_reload_window[1], gasholders_to_reload_window[0], -1)
+        gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, window=gasholders_to_reload_window,
+                                                             screen=screen, offset=offset)
         while gasholder_low_charge_coord is not None:
-            self.clicker.click(*gasholder_low_charge_coord)
-            self.clicker.wait_for_image(properties_tab, timeout=self.action_timeout)
-            screen, offset = self.clicker.screen_lookup()
-            gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
-            self.clicker.click(gasholder_low_charge_coord[0] + 20, gasholder_low_charge_coord[1] + 70)  # Открыть окно газгольдера
+            self.clicker.click(gasholder_low_charge_coord[0] + 20, gasholder_low_charge_coord[1] - 20)
+            properties_tab_coord = self.clicker.wait_for_image(properties_tab, timeout=self.action_timeout)
+            # screen, offset = self.clicker.screen_lookup()
+            # gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
+            # self.clicker.click(gasholder_low_charge_coord[0] + 20, gasholder_low_charge_coord[1] + 70)  # Открыть окно газгольдера
+            self.clicker.click(properties_tab_coord[0] + 35, properties_tab_coord[1] + 180)  # Открыть окно газгольдера
             reload_coord = self.clicker.wait_for_image(reload_button, threshold=.8, timeout=self.action_timeout)
             self.clicker.click(*reload_coord)  # Перезарядить
             print(datetime.datetime.now(), "Заряжен газгольдер")
             time.sleep(1)
-            self.clicker.click(reload_coord[0] + 180, reload_coord[1] - 320)  # Закрытие окна газгольдера
+            self.clicker.click(reload_coord[0] + 183, reload_coord[1] - 318)  # Закрытие окна газгольдера
             self.clicker.keypress(win32con.VK_ESCAPE)  # Закрытие окна оружия
             time.sleep(1)
-            screen, offset = self.clicker.screen_lookup()
+            screen, offset = self.clicker.screen_lookup(window=gasholders_to_reload_window)
             gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
 
         print(datetime.datetime.now(), "Газгольдеры заряжены")
