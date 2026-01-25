@@ -2510,6 +2510,7 @@ class Player:
             not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image)
             if not_broken_saw_coord is not None:
                 self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+                print(datetime.datetime.now(), "Сломанный дровосек заменен на новый")
             else:
                 self.close_all_windows()
 
@@ -2537,6 +2538,7 @@ class Player:
                     saw_equipped_successful = False
                 else:
                     self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
+                    print(datetime.datetime.now(), "Сломанный дровосек заменен на новый")
                     saw_equipped_successful = True
 
         self.close_all_windows()
