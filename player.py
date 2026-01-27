@@ -96,6 +96,10 @@ change_tab = cv2.imread(resource_path(os.path.join('images', 'change_tab.PNG')))
 manufacture_tab = cv2.imread(resource_path(os.path.join('images', 'manufacture_tab.PNG')))
 description_tab = cv2.imread(resource_path(os.path.join('images', 'description_tab.PNG')))
 
+# Техи
+tech_slot_auto_use = cv2.imread(resource_path(os.path.join('images', 'tech_slot_auto_use.PNG')), cv2.IMREAD_UNCHANGED)
+tech_slot_saw = cv2.imread(resource_path(os.path.join('images', 'tech_slot_saw.PNG')), cv2.IMREAD_UNCHANGED)
+
 # Действия с смертью и приглашением в группу
 to_city_button = cv2.imread(resource_path(os.path.join('images', 'to_city_button.PNG')))
 dead_title = cv2.imread(resource_path(os.path.join('images', 'your_ship_down.PNG')))
@@ -245,6 +249,8 @@ class Player:
     wr = round(w + 2, 0)
     green_buff = 1.07
     action_window = (-70, 360, -1, -1)
+    tech_window = (-600, -100, -265, -1)
+    tech_detection_precision = .4
 
     storage_filters_window = (-450, -170, -1, -100)
     city_services_window = (-600, -80, -1, -1)
@@ -385,6 +391,8 @@ class Player:
         # "wr": "",
         # "green_buff": "",
         # "action_window": "",
+        # "tech_window": "",
+        "tech_detection_precision": "точность определения техов",
         
         # "storage_filters_window": "",
         # "city_services_window": "",
@@ -2275,6 +2283,16 @@ class Player:
         }[len(self.locate(image=tree_image_orange, threshold=self.tree_spot_detection_precision)) > 0]
         broken_saw_image = broken_saw_big_image
         not_broken_saw_image = not_broken_saw_big_image
+
+        print(datetime.datetime.now(), "Поиск дровосека среди техустройств...")
+        tech_saw_found = self.clicker.wait_for_image(tech_slot_saw, window=self.tech_window, threshold=self.tech_detection_precision, timeout=30)
+        if not tech_saw_found:
+            print(datetime.datetime.now(), "Не удалось найти дровосека среди техустройств!")
+            return False
+
+        tech_saw_slot_number = self.get_tech_slot_number(tech_slot_saw)
+        print(datetime.datetime.now(), f"Найден дровосек среди техустройств: {tech_saw_slot_number}.")
+
         # if self.approach(tree_spot_image, distance=self.fishing_spot_approach_distance, threshold=self.fishing_spot_detection_precision):
         #     time.sleep(3)
 
@@ -2286,7 +2304,7 @@ class Player:
             self.clicker.keypress(self.auto_use_all_key)
             self.start_spam_attack()
 
-        self.last_looting_time = time.time()
+        # self.last_looting_time = time.time()
 
         while True:
             # Обработка смерти
@@ -2316,11 +2334,12 @@ class Player:
                     time.sleep(.01)
                     if self.do_looting:
                         self.loot()
-                    else:
-                        if len(self.locate_loot()) > 0:
-                            self.last_looting_time = time.time()
+                    # else:
+                    #     if len(self.locate_loot()) > 0:
+                    #         self.last_looting_time = time.time()
 
-                    if time.time() - self.last_looting_time > self.change_saw_after_no_looting_time:
+                    # if time.time() - self.last_looting_time > self.change_saw_after_no_looting_time:
+                    if not self.get_auto_use(tech_saw_slot_number):
                         self.stop_spam_attack()
                         if not self.change_saw():
                             print(datetime.datetime.now(), "Дровосеки закончились")
@@ -2328,7 +2347,7 @@ class Player:
                                 self.scale_out_radar()
                             break
                         self.start_spam_attack()
-                        self.last_looting_time = time.time() + 30
+                        # self.last_looting_time = time.time() + 30
                 else:
                     print(datetime.datetime.now(), 'Кнопка запуска дровосека не была найдена!')
 
@@ -2365,7 +2384,7 @@ class Player:
                     self.clicker.keypress(self.auto_use_all_key)
 
                     self.start_spam_attack()
-                    self.last_looting_time = time.time()
+                    # self.last_looting_time = time.time()
 
                 time.sleep(self.delay_between_farm_attempts)
             except win32ui.error:
@@ -2376,6 +2395,74 @@ class Player:
             except ValueError:
                 print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
                 beep(sync=True)
+
+    def find_tech(self, tech_image, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup(self.tech_window)
+        return self.clicker.find_image(tech_image, window=self.tech_window, centers=True,
+                                       threshold=self.tech_detection_precision,
+                                       screen=screen, offset=offset)
+
+    def get_tech_slot_number(self, tech_image, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup(self.tech_window)
+        tech_coord = self.clicker.find_image(tech_image, window=self.tech_window, centers=True,
+                                             threshold=self.tech_detection_precision,
+                                             screen=screen, offset=offset)
+        if tech_coord is None:
+            return None
+
+        tech_coord_local = (tech_coord[0] - offset[0], tech_coord[1] - offset[1])
+        return int(tech_coord_local[0] // 47 + (tech_coord_local[1] // 49) * 7)
+
+    def get_auto_use(self, slot, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup(self.tech_window)
+
+        xi = slot % 7
+        yi = slot // 7
+        for xo, yo in [(2, 1), (-1, 2)]:
+            auto_use_tech_offset = (1360 + xo - 1920, 1018 + yo - 1080)
+            dx = 47
+            dy = 49
+            pixel = self.clicker.pixel(
+                auto_use_tech_offset[0] + xi * dx,
+                auto_use_tech_offset[1] + yi * dy,
+                screen=screen, offset=offset
+            )
+            if all(pixel == (255, 255, 255)) or all(pixel == (119, 123, 109)):
+                return True
+
+        return False
+
+    def check_auto_use(self, screen=None, offset=None):
+        if screen is None or offset is None:
+            screen, offset = self.clicker.screen_lookup(self.tech_window)
+
+        auto = []
+
+        for xo, yo in [(2, 1), (-1, 2)]:
+            auto_use_tech_offset = (1360 + xo - 1920, 1018 + yo - 1080)
+            dx = 47
+            dy = 49
+            for yi in range(2):
+                for xi in range(7):
+                    if xi + yi * 7 in auto:
+                        continue
+
+                    pixel = self.clicker.pixel(
+                        auto_use_tech_offset[0] + xi * dx,
+                        auto_use_tech_offset[1] + yi * dy,
+                        screen=screen, offset=offset
+                    )
+                    if all(pixel == (255, 255, 255)) or all(pixel == (119, 123, 109)):
+                        auto.append(xi + yi * 7)
+                        # print("auto", xi, yi)
+
+                        self.clicker.fill((auto_use_tech_offset[0] + xi * dx, auto_use_tech_offset[1] + yi * dy, auto_use_tech_offset[0] + xi * dx, auto_use_tech_offset[1] + yi * dy),
+                                          (255, 0, 0), screen=screen, offset=offset)
+
+        return auto
 
     def find_action(self, action_image, screen=None, offset=None):
         if screen is None or offset is None:

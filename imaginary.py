@@ -28,7 +28,7 @@ class ImageShower:
     @property
     def image(self):
         if self._image is None:
-            self._image = self.ax.imshow(np.random.rand(100, 100), cmap='gray', vmin=0, vmax=255)
+            self._image = self.ax.imshow(np.random.rand(100, 100), cmap='gray', vmin=0, vmax=255, aspect='auto')
             plt.show(block=False)
         return self._image
 
