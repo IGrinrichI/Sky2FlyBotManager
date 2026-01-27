@@ -108,6 +108,7 @@ invite_button = cv2.imread(resource_path(os.path.join('images', 'invite_button.P
 party_request = cv2.imread(resource_path(os.path.join('images', 'party_request.PNG')))
 accept_button = cv2.imread(resource_path(os.path.join('images', 'accept_button.PNG')))
 
+# Одуванчики
 pink_dandelion = cv2.imread(resource_path(os.path.join('images', 'pink_dandelion.png')))
 green_dandelion = cv2.imread(resource_path(os.path.join('images', 'green_dandelion.png')))
 orange_dandelion = cv2.imread(resource_path(os.path.join('images', 'orange_dandelion.png')))
@@ -256,6 +257,7 @@ class Player:
     city_services_window = (-600, -80, -1, -1)
 
     press_esc_after_radar_action = False
+    fly_to_object_key = 'Клик левой кнопкой мыши'
     force_key = 'f'
     force_forward_key = 'q'
     force_left_key = 'x'
@@ -398,6 +400,7 @@ class Player:
         # "city_services_window": "",
         
         "press_esc_after_radar_action": "нажимать клавишу esc после взаимодействия с радаром",
+        "fly_to_object_key": "лететь к объекту",
         "force_key": "форсаж вперед (расходуется охладитель)",
         "force_forward_key": "ускорение вперед",
         "force_left_key": "ускорение влево",
@@ -1936,7 +1939,12 @@ class Player:
     def loot_dandelion(self):
         click_coord = (int(self.clicker.screen_width / 2), int(self.clicker.screen_height / 2) - 30)
         for i in range(10):
-            self.clicker.clickr(*click_coord)
+            if self.fly_to_object_key.lower() == 'клик правой кнопкой мыши':
+                self.clicker.clickr(*click_coord)
+            elif self.fly_to_object_key.lower() == 'клик левой кнопкой мыши':
+                self.clicker.click(*click_coord)
+            else:
+                self.clicker.click(*click_coord)
             time.sleep(.1)
 
         self.clicker.keypress(self.force_right_key)

@@ -32,7 +32,7 @@ from pynput import keyboard
 
 from clicker import Clicker
 from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, \
-    reload_button, not_broken_saw_big_image
+    reload_button, not_broken_saw_big_image, tech_slot_saw, tech_slot_auto_use
 import win32con
 import win32gui
 
@@ -187,7 +187,17 @@ if quest:
         player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
         time.sleep(1)
 
+player.clicker.screen_lookup()
 
+# player.clicker.keydown('[Shift]')
+# time.sleep(.5)
+player.clicker.click(960, 200)
+# time.sleep(.5)
+# player.clicker.keyup('[Shift]')
+exit()
+# player.check_auto_use()
+# exit()
+# print(player.find_tech(tech_slot_saw))
 # print(player.find_slot_in_items(not_broken_saw_big_image))
 
 # print(player.attribute_cross_naming_en_ru)
@@ -289,7 +299,7 @@ if quest:
 #                 # correct_rotation=False
 #                 )
 
-exit()
+# exit()
 from image_finder import find_template_on_image
 # origin_image = imread('pht.jpg')
 # centers = np.array(find_template_on_image(origin_image, tunnel_img, circle_mask=False, centers=True, threshold=.7, min_dist=None))
@@ -316,20 +326,57 @@ hashes = dict()
 
 player.shower = shower
 while True:
+    if not player.get_auto_use(13):
+        print('FUCK')
+    shower.display(player.clicker.screen[:,:,::-1])
+    continue
     # print(player.set_speed_arm_value(-1))
     # print(player.set_low_speed())
     # start = time.time()
     # player.lookup_direction()
 
-    screen, offset = clicker.screen_lookup(window=(-225, 15, -40, 200))
+    # screen, offset = clicker.screen_lookup(window=(-225, 15, -40, 200))
+    screen, offset = clicker.screen_lookup(window=player.tech_window)
 
     radar = screen
-    centers = np.array(find_template_on_image(radar, vortex_img, circle_mask=False, centers=True, threshold=.2, min_dist=None))
+    # centers = np.array(find_template_on_image(radar, vortex_img, circle_mask=False, centers=True, threshold=.2, min_dist=None))
+    (119, 123, 109)
+    (255, 255, 255)
+    (1642, 1018)
+    (1595, 1067)
+    dx = 47
+    dy = 49
+    (1360, 1067)
+    centers = np.array(find_template_on_image(radar, tech_slot_saw, circle_mask=False, centers=True, threshold=.4, min_dist=None))
     radar = radar[:, :, ::-1]
     if len(centers) > 0:
         radar[centers[:, 1], centers[:, 0]] = [255, 0, 0]
     else:
         print('FUCK')
+
+    # player.check_auto_use()
+    # tech_slot = player.get_tech_slot_number(tech_slot_saw, screen=screen, offset=offset)
+    # print(tech_slot)
+    # print(player.get_auto_use(tech_slot))
+    # shower.display(clicker.screen[:, :, ::-1])
+
+    # print(clicker._resolve_coord(1362 + 2, 1018 - 23 + 1))
+    # print(clicker._resolve_coord(1362 + 2 - 1920, 1018 - 23 + 1 - 1080))
+    #
+    # for x in range(1360 + 2, 1643 + 2, 47):
+    #     for y in range(1018 - 23 + 1, 1068 - 23 + 1, 49):
+    #         if ((radar[y - offset[1], x - offset[0]] == (255, 255, 255)).all()
+    #                 or (radar[y - offset[1], x - offset[0]] == (119, 123, 109)).all()):
+    #             radar[y - offset[1], x - offset[0]] = [255, 0, 0]
+    #
+    # for x in range(1360 + -1, 1643 + -1, 47):
+    #     for y in range(1018 - 23 + 2, 1068 - 23 + 2, 49):
+    #         if ((radar[y - offset[1], x - offset[0]] == (255, 255, 255)).all()
+    #                 or (radar[y - offset[1], x - offset[0]] == (119, 123, 109)).all()):
+    #             radar[y - offset[1], x - offset[0]] = [255, 0, 0]
+
+
+
     shower.display(radar)
     # ld_time = time.time() - start
     # print('ld', ld_time)
