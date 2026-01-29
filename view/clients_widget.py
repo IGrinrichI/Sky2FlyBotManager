@@ -230,6 +230,7 @@ class ClientsWidget(ScrollView):
             )
             for parent_hwnd in app_list
         ]
+        s2f_actual_windows = list(filter(lambda x: x != 0, s2f_actual_windows))
 
         layout = self.ids.layout
         current_s2f_windows = {child.hwnd: child for child in layout.children}
