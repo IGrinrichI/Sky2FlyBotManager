@@ -250,6 +250,7 @@ class Player:
     wr = round(w + 2, 0)
     green_buff = 1.07
     action_window = (-70, 360, -1, -1)
+    action_detection_precision = .8
     tech_window = (-600, -100, -265, -1)
     tech_detection_precision = .4
 
@@ -350,13 +351,13 @@ class Player:
         
         "abilities": "способности для активации",
         "kill_enemies": "убивать врагов",
+        "spam_attack_interval": "интервал атак при спаме",
         "spam_attack": "спамить атаку",
         # "spam_attack_stop_event": "",
-        "spam_attack_interval": "интервал атак при спаме",
         # "last_attack_time": "",
         "enemy_types": "типы врагов для убийства",
-        "smart_targeting": "умное выделение цели",
         "fire_when_smart_targeting": "спамить атаку, когда цель выделена",
+        "smart_targeting": "умное выделение цели",
         "do_drop_chests": "выкидывать сундуки",
         "loot_on_fly": "собирать ресурсы, когда летишь куда-то",
         "do_looting": "собирать ресурсы",
@@ -393,6 +394,7 @@ class Player:
         # "wr": "",
         # "green_buff": "",
         # "action_window": "",
+        "action_detection_precision": "точность определения действий",
         # "tech_window": "",
         "tech_detection_precision": "точность определения техов",
         
@@ -2195,7 +2197,7 @@ class Player:
                         catching_window_coord = (
                         catching_coord[0] - 10, catching_coord[1], catching_coord[0] + 400, catching_coord[1] + 600)
                     else:
-                        start_catch_coord = self.clicker.find_image(start_catch_img, window=self.action_window, screen=screen, offset=offset)
+                        start_catch_coord = self.find_action(start_catch_img, screen=screen, offset=offset)
                         if start_catch_coord:
                             print(datetime.datetime.now(), 'Начало рыбалки.')
                             fishing_in_progress = True
@@ -2475,7 +2477,9 @@ class Player:
     def find_action(self, action_image, screen=None, offset=None):
         if screen is None or offset is None:
             screen, offset = self.clicker.screen_lookup(self.action_window)
-        return self.clicker.find_image(action_image, window=self.action_window, centers=True, screen=screen, offset=offset)
+        return self.clicker.find_image(action_image, window=self.action_window, centers=True,
+                                       threshold=self.action_detection_precision,
+                                       screen=screen, offset=offset)
 
     def find_equipped_slot(self, equipment_image, screen=None, offset=None):
         if screen is None or offset is None:
