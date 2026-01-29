@@ -2546,11 +2546,18 @@ class Player:
         for i in range(5):
             self.clicker.keypress(self.esc_key)
 
-    def buy_in_shop(self, image_list, amount=1):
-        screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
-        shop_coord = self.clicker.find_image(shop_button, centers=True, screen=screen, offset=offset)
+    def buy_in_shop(self, image_list, amount=1, wait_shop=True):
+        if wait_shop:
+            shop_coord = self.clicker.wait_for_image(shop_button, window=self.city_services_window,
+                                                     centers=True, timeout=self.action_timeout)
+        else:
+            screen, offset = self.clicker.screen_lookup(window=self.city_services_window)
+            shop_coord = self.clicker.find_image(shop_button, centers=True, screen=screen, offset=offset)
         if shop_coord is not None:
             self.clicker.click(*shop_coord)
+        else:
+            print(datetime.datetime.now(), "Кнопка магазина не была найдена!")
+            return False
 
         shop_item_coord = None
         for image in image_list:
@@ -2613,7 +2620,13 @@ class Player:
             else:
                 self.close_all_windows()
 
-                self.buy_in_shop([shop_equipment_button, buy_saw_big_button], self.additional_saw_amount + 1)
+                if not self.buy_in_shop([shop_equipment_button, buy_saw_big_button],
+                                        amount=self.additional_saw_amount + 1,
+                                        wait_shop=True):
+                    print(datetime.datetime.now(), "Фарм будет завершен!")
+                    self.repeat_cycle_forever = False
+                    return False
+
                 time.sleep(1)
 
                 self.open_equipment()
@@ -2710,9 +2723,14 @@ class Player:
             # Если недоложили - идем покупаем
             if in_cargo_saw_count < self.additional_saw_amount:
                 self.exit()
-                time.sleep(1)
 
-                self.buy_in_shop([shop_equipment_button, buy_saw_big_button], self.additional_saw_amount - in_cargo_saw_count)
+                if not self.buy_in_shop([shop_equipment_button, buy_saw_big_button],
+                                        amount=self.additional_saw_amount - in_cargo_saw_count,
+                                        wait_shop=True):
+                    print(datetime.datetime.now(), "Фарм будет завершен!")
+                    self.repeat_cycle_forever = False
+                    return False
+
                 time.sleep(1)
 
                 self.open_storage()
