@@ -2537,17 +2537,20 @@ class Player:
                 # time.sleep(30)
             else:
                 print(datetime.datetime.now(), "Дровосек для замены не был найден")
+                self.close_all_windows()
                 return False
         else:
             not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
             if not_broken_saw_coord is None:
                 print(datetime.datetime.now(), "Дровосек не экипирован, чтобы его можно было заменить")
+                self.close_all_windows()
                 return False
             else:
                 print(datetime.datetime.now(), "Замена дровосека не требуется")
 
             self.clicker.keypress(self.auto_use_all_key)
 
+        self.close_all_windows()
         return True
 
     def close_all_windows(self):
