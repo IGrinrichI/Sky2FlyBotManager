@@ -2377,6 +2377,9 @@ class Player:
                                   stop_action_image=launch_saw_active_image,
                                   very_slow=True if not self.positioning_to_the_center else False)
 
+                    # После приближения по идее надо пару секунд подождать, чтобы кнопка остановилась
+                    on_tree_start_time = time.time()
+
                     self.scale_in_radar()
                     if self.positioning_to_the_center:
                         # Подлететь к дереву
@@ -2395,6 +2398,11 @@ class Player:
 
                     self.start_spam_attack()
                     # self.last_looting_time = time.time()
+
+                    # После приближения по идее надо пару секунд подождать, чтобы кнопка остановилась
+                    actions_time = time.time() - on_tree_start_time
+                    if actions_time < 3:
+                        time.sleep(3 - actions_time)
 
                 time.sleep(self.delay_between_farm_attempts)
             except win32ui.error:
