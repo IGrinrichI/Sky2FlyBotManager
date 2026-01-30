@@ -10,7 +10,8 @@ a = Analysis(
         ('images', 'images'),
         (r'..\Clicker', '.'),
         ('private_key.pem', '.'),
-        ('*.kv', '.')
+        ('*.kv', '.'),
+        ('Sky2FlyBotManagerAutoUpdater.bat', '.'),
     ],
     hiddenimports=['win32api', 'win32con', 'win32gui', 'win32ui'],
     hookspath=[],

@@ -19,9 +19,19 @@
 <MainView>:
     id: main_view
     orientation: "horizontal"
-    ClientsWidget:
-        id: clients_tree
-        size_hint_x: None
-        width: 140
+    BoxLayout:
+        orientation: "vertical"
+        ClientsWidget:
+            id: clients_tree
+            size_hint_x: None
+            width: 140
+        Button:
+            id: update_button
+            text: "Вышло новое обновление!\nКликни, чтобы обновиться ;)"
+            on_press: root.load_update()
+            size_hint_y: None
+            height: 45 * (1 - int(self.disabled))
+            opacity: 1 - int(self.disabled)
+            disabled: True
     PresetsWidget:
         id: presets_widget
