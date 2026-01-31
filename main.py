@@ -187,8 +187,9 @@ if quest:
         player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
         time.sleep(1)
 
+player.service_all_for_dl()
 # player.clicker.screen_lookup()
-print(player.find_action(launch_saw_active_image))
+# print(player.find_action(launch_saw_active_image))
 # player.clicker.keydown('[Shift]')
 # time.sleep(.5)
 # player.clicker.click(960, 200)

@@ -52,7 +52,9 @@ enemy_locked_on = cv2.imread(resource_path(os.path.join('images', 'enemy_locked_
 
 # Город/сервис/склад
 service_button = cv2.imread(resource_path(os.path.join('images', 'service.bmp')))
+service_title = cv2.imread(resource_path(os.path.join('images', 'service_title.png')))
 service_all_button = cv2.imread(resource_path(os.path.join('images', 'service_all.bmp')))
+service_tech_button = cv2.imread(resource_path(os.path.join('images', 'service_tech.png')))
 take_all_button = cv2.imread(resource_path(os.path.join('images', 'take_all.bmp')))
 storage_button = cv2.imread(resource_path(os.path.join('images', 'storage.bmp')))
 all_to_storage_button = cv2.imread(resource_path(os.path.join('images', 'all_to_storage.bmp')))
@@ -559,14 +561,29 @@ class Player:
         if service_coord:
             print(datetime.datetime.now(), 'Сервис')
             self.clicker.click(*service_coord)
-            service_all_coord = self.clicker.wait_for_image(image=service_all_button, threshold=.8,
-                                                            timeout=self.action_timeout, centers=True)
-            if service_all_coord:
-                print(datetime.datetime.now(), 'Зарядить всё')
-                self.clicker.click(*service_all_coord)
-                return True
+            service_title_coord = self.clicker.wait_for_image(image=service_title, threshold=.8,
+                                                              timeout=self.action_timeout)
+            if service_title_coord:
+                screen, offset = self.clicker.screen_lookup(window=(service_title_coord[0] - 20, service_title_coord[1], -1, -1))
+                service_all_coord = self.clicker.find_image(image=service_all_button, threshold=.8, centers=True,
+                                                            screen=screen, offset=offset)
+                if service_all_coord:
+                    print(datetime.datetime.now(), 'Зарядить всё')
+                    self.clicker.click(*service_all_coord)
+                    return True
+                else:
+                    service_tech_coord = self.clicker.find_image(image=service_tech_button, threshold=.8, centers=True,
+                                                                 screen=screen, offset=offset)
+                    if service_tech_coord:
+                        print(datetime.datetime.now(), 'Зарядить техустройства')
+                        self.clicker.click(*service_tech_coord)
+                        return True
+                    else:
+                        print(datetime.datetime.now(), 'Кнопка зарядки сервиса не была найдена!')
+                        self.clicker.click(*service_coord)
+                        return False
             else:
-                print(datetime.datetime.now(), 'Кнопка "Зарядить всё" не обнаружена')
+                print(datetime.datetime.now(), 'Окно сервиса не открылось за отведенное время!')
                 return False
         else:
             print(datetime.datetime.now(), 'Кнопка "Сервис" не обнаружена')
