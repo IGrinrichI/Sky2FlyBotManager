@@ -10,7 +10,7 @@ if exist "%1" (
         timeout /t 1 /nobreak >nul
         goto retry_1
     )
-    timeout /t 1 /nobreak >nul
+    timeout /t 3 /nobreak >nul
     del /f /q "%1"
 )
 
