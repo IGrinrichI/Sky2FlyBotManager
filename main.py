@@ -32,7 +32,7 @@ from pynput import keyboard
 
 from clicker import Clicker
 from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, \
-    reload_button, not_broken_saw_big_image, tech_slot_saw, tech_slot_auto_use
+    reload_button, not_broken_saw_big_image, tech_slot_saw
 import win32con
 import win32gui
 
@@ -187,7 +187,9 @@ if quest:
         player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
         time.sleep(1)
 
-player.service_all_for_dl()
+player.on_error_save_image = True
+player.open_storage()
+player.log_error('Блин, что за фигня?')
 # player.clicker.screen_lookup()
 # print(player.find_action(launch_saw_active_image))
 # player.clicker.keydown('[Shift]')

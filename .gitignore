@@ -1,4 +1,5 @@
 /dist/*
+/logs/*
 /venv/*
 /build/*
 screen.png

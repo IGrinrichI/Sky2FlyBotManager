@@ -99,7 +99,6 @@ manufacture_tab = cv2.imread(resource_path(os.path.join('images', 'manufacture_t
 description_tab = cv2.imread(resource_path(os.path.join('images', 'description_tab.PNG')))
 
 # Техи
-tech_slot_auto_use = cv2.imread(resource_path(os.path.join('images', 'tech_slot_auto_use.PNG')), cv2.IMREAD_UNCHANGED)
 tech_slot_saw = cv2.imread(resource_path(os.path.join('images', 'tech_slot_saw.PNG')), cv2.IMREAD_UNCHANGED)
 
 # Действия с смертью и приглашением в группу
@@ -154,6 +153,7 @@ boss = cv2.imread(resource_path(os.path.join('images', 'boss.png')))
 class Player:
     mode = 'Убийство мобов в зоне'
     next_preset = None
+    on_error_save_image = False
     check_state_in_city_before_farm = False
     warp_bias = 7
     target_bias = 3
@@ -310,6 +310,7 @@ class Player:
     attribute_cross_naming_en_ru = {
         "mode": "режим работы",
         "next_preset": "следующий пресет",
+        "on_error_save_image": "в случае ошибки сохранять изображение",
         "check_state_in_city_before_farm": "выполнять проверку в начале перед вылетом",
         "warp_bias": "изменение координат, считающееся перелетом в другую локацию",
         "target_bias": "отклонение от координат перелетов",
@@ -456,6 +457,14 @@ class Player:
     def __init__(self, clicker):
         self.clicker = clicker
 
+    def log_message(self, text):
+        print(datetime.datetime.now(), text)
+
+    def log_error(self, text):
+        print(datetime.datetime.now(), text)
+        if self.on_error_save_image:
+            self.clicker.save_dump(text)
+
     def force_left(self):
         self.clicker.keypress(self.force_left_key)
 
@@ -495,7 +504,7 @@ class Player:
         if available_directions_to_undock:
             direction = random.choice(available_directions_to_undock)
             direction = direction if direction in self.coords_to_undock else 'с'
-            print(datetime.datetime.now(), f'Вылет в направлении "{direction}"')
+            self.log_message(f'Вылет в направлении "{direction}".')
             self.clicker.click(*self.coords_to_undock[direction])
             time.sleep(.2)
             self.clicker.move(0, 0)
@@ -559,7 +568,7 @@ class Player:
         service_coord = self.clicker.wait_for_image(
             image=service_button, window=self.city_services_window, centers=True, timeout=self.action_timeout)
         if service_coord:
-            print(datetime.datetime.now(), 'Сервис')
+            self.log_message('Сервис.')
             self.clicker.click(*service_coord)
             service_title_coord = self.clicker.wait_for_image(image=service_title, threshold=.8,
                                                               timeout=self.action_timeout)
@@ -568,25 +577,25 @@ class Player:
                 service_all_coord = self.clicker.find_image(image=service_all_button, threshold=.8, centers=True,
                                                             screen=screen, offset=offset)
                 if service_all_coord:
-                    print(datetime.datetime.now(), 'Зарядить всё')
+                    self.log_message('Зарядить всё.')
                     self.clicker.click(*service_all_coord)
                     return True
                 else:
                     service_tech_coord = self.clicker.find_image(image=service_tech_button, threshold=.8, centers=True,
                                                                  screen=screen, offset=offset)
                     if service_tech_coord:
-                        print(datetime.datetime.now(), 'Зарядить техустройства')
+                        self.log_message('Зарядить техустройства.')
                         self.clicker.click(*service_tech_coord)
                         return True
                     else:
-                        print(datetime.datetime.now(), 'Кнопка зарядки сервиса не была найдена!')
+                        self.log_error('Кнопка зарядки сервиса не была найдена!')
                         self.clicker.click(*service_coord)
                         return False
             else:
-                print(datetime.datetime.now(), 'Окно сервиса не открылось за отведенное время!')
+                self.log_error('Окно сервиса не открылось за отведенное время!')
                 return False
         else:
-            print(datetime.datetime.now(), 'Кнопка "Сервис" не обнаружена')
+            self.log_error('Кнопка "Сервис" не обнаружена!')
             return False
 
     def open_storage(self):
@@ -597,20 +606,20 @@ class Player:
             storage_search_box_coord = self.clicker.wait_for_image(
                 image=storage_search_box, window=self.storage_filters_window, centers=True, timeout=self.action_timeout)
             if storage_search_box_coord:
-                print(datetime.datetime.now(), 'Склад открыт')
+                self.log_message('Склад открыт.')
                 return True
             else:
-                print(datetime.datetime.now(), 'Склад не открыт')
+                self.log_error('Склад не открыт!')
                 return False
         else:
             screen, offset = self.clicker.screen_lookup()
             storage_search_box_coord = self.clicker.find_image(
                 image=storage_search_box, window=self.storage_filters_window, centers=True, screen=screen, offset=offset)
             if storage_search_box_coord:
-                print(datetime.datetime.now(), 'Склад открыт')
+                self.log_message('Склад открыт.')
                 return True
 
-            print(datetime.datetime.now(), 'Кнопка "Склад" не обнаружена')
+            self.log_error('Кнопка "Склад" не обнаружена!')
             return False
 
     def toggle_buying_up(self, state):
@@ -624,14 +633,14 @@ class Player:
 
         if state and buying_up_closed_button_coord:
             self.clicker.click(*buying_up_closed_button_coord)
-            print(datetime.datetime.now(), "Открыта скупка")
+            self.log_message("Открыта скупка.")
             return True
         elif not state and buying_up_opened_button_coord:
             self.clicker.click(*buying_up_opened_button_coord)
-            print(datetime.datetime.now(), "Закрыта скупка")
+            self.log_message("Закрыта скупка.")
             return True
         else:
-            print(datetime.datetime.now(), "Кнопка скупки не найдена")
+            self.log_error("Кнопка скупки не найдена!")
             return False
 
     def exit(self):
@@ -650,13 +659,13 @@ class Player:
         store_all = self.clicker.find_image(image=all_to_storage_button, threshold=.99, centers=True,
                                             screen=screen, offset=offset)
         if store_all:
-            print(datetime.datetime.now(), 'Всё на склад')
+            self.log_message('Всё на склад.')
             self.clicker.click(*store_all)
             time.sleep(1)
             self.exit()
             return True
         else:
-            print(datetime.datetime.now(), 'Кнопка "Всё на склад" не обнаружена')
+            self.log_error('Кнопка "Всё на склад" не обнаружена!')
             self.exit()
             return False
 
@@ -668,7 +677,7 @@ class Player:
         self.store_resources_to_storage()
 
     def reload_gasholders(self):
-        print(datetime.datetime.now(), "Зарядка газгольдеров")
+        self.log_message("Зарядка газгольдеров.")
         if not self.open_ship():
             return False
 
@@ -686,7 +695,7 @@ class Player:
             self.clicker.click(properties_tab_coord[0] + 35, properties_tab_coord[1] + 180)  # Открыть окно газгольдера
             reload_coord = self.clicker.wait_for_image(reload_button, threshold=.8, timeout=self.action_timeout)
             self.clicker.click(*reload_coord)  # Перезарядить
-            print(datetime.datetime.now(), "Заряжен газгольдер")
+            self.log_message("Заряжен газгольдер.")
             time.sleep(1)
             self.clicker.click(reload_coord[0] + 183, reload_coord[1] - 318)  # Закрытие окна газгольдера
             self.clicker.keypress(win32con.VK_ESCAPE)  # Закрытие окна оружия
@@ -694,7 +703,7 @@ class Player:
             screen, offset = self.clicker.screen_lookup(window=gasholders_to_reload_window)
             gasholder_low_charge_coord = self.clicker.find_image(gasholder_low_charge_img, screen=screen, offset=offset)
 
-        print(datetime.datetime.now(), "Газгольдеры заряжены")
+        self.log_message("Газгольдеры заряжены.")
 
         return True
 
@@ -851,7 +860,7 @@ class Player:
         if not last_focus_state and locked_on_enemy:
             self.enemy_focused_at = time.time()
         elif locked_on_enemy and time.time() - self.enemy_focused_at > self.enemy_kill_timeout:
-            print(datetime.datetime.now(), 'Превышено время на убийство цели.')
+            self.log_error('Превышено время на убийство цели!')
             self.break_target()
             time.sleep(.3)
             locked_on_enemy = False
@@ -935,7 +944,7 @@ class Player:
             screen, offset = self.clicker.screen_lookup()
             take_all_coord = self.clicker.find_image(take_all_button, threshold=.99, screen=screen, offset=offset)
             if take_all_coord:
-                print(datetime.datetime.now(), 'Взять всё')
+                self.log_message('Взять всё.')
                 self.clicker.click(*take_all_coord)
                 time.sleep(.3)
                 if self.is_locked_on_enemy():
@@ -1125,7 +1134,7 @@ class Player:
 
                     if not self.rotating:
                         if time.time() - rotation_time >= rotation_timeout:
-                            print(datetime.datetime.now(), 'Залип поворот')
+                            self.log_error('Залип поворот!')
                             self.clicker.reset_keyboard()
                         #     self.clicker.keypress(win32con.VK_LEFT)
                         #     self.clicker.keypress(win32con.VK_RIGHT)
@@ -1264,18 +1273,18 @@ class Player:
         screen, offset = self.clicker.screen_lookup()
         fly_in_button_coord = self.clicker.find_image(fly_in_button, screen=screen, offset=offset, centers=True)
         if fly_in_button_coord is not None:
-            print(datetime.datetime.now(), "Перелет через вихрь")
+            self.log_message("Перелет через вихрь.")
             self.clicker.click(*fly_in_button_coord)
             return True
         else:
-            print(datetime.datetime.now(), "Кнопка перелета через вихрь не была найдена")
+            self.log_error("Кнопка перелета через вихрь не была найдена!")
             vortex_coord = self.locate(vortex_img, threshold=self.vortex_detection_precision)
             vortex_coord = min(vortex_coord, key=lambda x: math.dist(x, self.center)) if vortex_coord else None
             if vortex_coord is not None:
                 self.clicker.click(*vortex_coord)
                 return True
             else:
-                print(datetime.datetime.now(), "Вихрь не был найден")
+                self.log_error("Вихрь не был найден!")
                 return False
 
     def fly_to(self, x, y,
@@ -1336,12 +1345,12 @@ class Player:
             # Если залетели куда-то, то выходим, считая, что место назначения достигнуто
             if math.dist(last_player_coord, self.radar_coords) >= self.warp_bias:
                 if target_bias == -1:
-                    print(datetime.datetime.now(), 'Прыжок в другой лабиринт')
+                    self.log_message('Прыжок в другой лабиринт.')
                     self.clicker.keypress(win32con.VK_DOWN)
                     self.stop_rotation()
                     return True
                 else:
-                    print(datetime.datetime.now(), 'Прыжок в другой лабиринт (ошибка)')
+                    self.log_error('Прыжок в другой лабиринт (ошибка)!')
                     self.clicker.keypress(win32con.VK_DOWN)
                     self.stop_rotation()
                     return False
@@ -1414,7 +1423,7 @@ class Player:
             tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
 
             if tunnel is None:
-                print(datetime.datetime.now(), 'Тоннель не обнаружен')
+                self.log_error('Тоннель не обнаружен!')
             else:
                 h, w, _ = tunnel_img.shape
                 click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
@@ -1423,7 +1432,7 @@ class Player:
                 self.clicker.dblclick(*click_coord)
                 tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
-                    print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
+                    self.log_error('Окно воздушных течений не было найдено!')
                 else:
                     screen, offset = self.clicker.screen_lookup()
                     base_option_coord = self.clicker.find_image(
@@ -1433,12 +1442,12 @@ class Player:
                         offset=offset
                     )
                     if base_option_coord is None:
-                        print(datetime.datetime.now(), 'База клана не найдена в списке воздушных течений')
+                        self.log_error('База клана не найдена в списке воздушных течений!')
                     else:
                         result = True
                         self.clicker.move(*base_option_coord)
                         self.clicker.click(base_option_coord[0] + 1, base_option_coord[1] + 1)
-                        print(datetime.datetime.now(), f'Выбран переход "База клана"')
+                        self.log_message(f'Выбран переход "База клана".')
                         time.sleep(1)
                         break
 
@@ -1463,7 +1472,7 @@ class Player:
             tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
 
             if tunnel is None:
-                print(datetime.datetime.now(), 'Тоннель не обнаружен')
+                self.log_error('Тоннель не обнаружен!')
             else:
                 h, w, _ = tunnel_img.shape
                 click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
@@ -1472,7 +1481,7 @@ class Player:
                 self.clicker.dblclick(*click_coord)
                 tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
-                    print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
+                    self.log_error('Окно воздушных течений не было найдено!')
                 else:
                     window = (
                         tunnel_window_coord[0], tunnel_window_coord[1],
@@ -1495,7 +1504,7 @@ class Player:
                                 y += window[1]
                                 self.clicker.move(x, y)
                                 self.clicker.click(x + 1, y + 1)
-                                print(datetime.datetime.now(), f'Выбран переход "{destination_name}"')
+                                self.log_message(f'Выбран переход "{destination_name}".')
                                 break
 
                         # Скроллим дальше, если возможно
@@ -1505,7 +1514,7 @@ class Player:
                             screen, offset = self.clicker.screen_lookup(window=window)
 
                     if not result:
-                        print(datetime.datetime.now(), f'Переход "{destination_name}" не найден')
+                        self.log_error(f'Переход "{destination_name}" не найден!')
 
             self.clicker.move(0, 0)
             if result:
@@ -1523,7 +1532,7 @@ class Player:
         self.clicker.click(-130, 100)
         tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
         if tunnel_window_coord is None:
-            print(datetime.datetime.now(), 'Окно воздушных течений не было найдено')
+            self.log_error('Окно воздушных течений не было найдено!')
         else:
             # [[b0, b1, b2, b3], str, float] window = (*b0, *b2)
             window = (
@@ -1548,7 +1557,7 @@ class Player:
                         y += window[1]
                         self.clicker.move(x, y)
                         self.clicker.click(x + 1, y + 1)
-                        print(datetime.datetime.now(), f'Выбран переход "{destination_name}"')
+                        self.log_message(f'Выбран переход "{destination_name}".')
                         break
 
                 # Скроллим дальше, если возможно
@@ -1558,7 +1567,7 @@ class Player:
                     screen, offset = self.clicker.screen_lookup(window=window)
 
             if not result:
-                print(datetime.datetime.now(), f'Переход "{destination_name}" не найден')
+                self.log_error(f'Переход "{destination_name}" не найден!')
 
         return result
 
@@ -1641,7 +1650,7 @@ class Player:
                 elif attribute.lower() in self.attribute_cross_naming_en_ru:
                     setattr(self, attribute.lower(), value)
                 else:
-                    print(datetime.datetime.now(), f"Внимание! Параметр \"{attribute}\" не поддерживается!")
+                    self.log_error(f"Внимание! Параметр \"{attribute}\" не поддерживается!")
 
     def find_text(self, text, window=None):
         screen, offset = self.clicker.screen_lookup(window=window)
@@ -1664,7 +1673,7 @@ class Player:
             screen, offset = self.clicker.screen_lookup(window=(0, 0, -1, 200))
             dead_title_coord = self.clicker.find_image(dead_title, screen=screen, offset=offset)
             if dead_title_coord is not None:
-                print(datetime.datetime.now(), f'Корабль подбит!')
+                self.log_error(f'Корабль подбит!')
                 screen, offset = self.clicker.screen_lookup(
                     window=(*dead_title_coord, dead_title_coord[0] + 200, dead_title_coord[1] + 200))
                 pay_button_coord = self.clicker.find_image(pay_button, screen=screen, offset=offset)
@@ -1691,7 +1700,7 @@ class Player:
                 wait_result = self.clicker.wait_for_image(equipment_tab, timeout=self.action_timeout)
 
             if not wait_result:
-                print(datetime.datetime.now(), "Окно корабля не открылось")
+                self.log_error("Окно корабля не открылось!")
                 return False
 
         return True
@@ -1705,7 +1714,7 @@ class Player:
             self.clicker.click(*cargo_tab_coord)
             return True
         else:
-            print(datetime.datetime.now(), "Вкладка трюма не была найдена")
+            self.log_error("Вкладка трюма не была найдена!")
             return False
 
     def open_equipment(self):
@@ -1716,13 +1725,13 @@ class Player:
         if equipment_tab_coord is not None:
             self.clicker.click(*equipment_tab_coord)
             if self.clicker.wait_for_image(crew_title, timeout=self.action_timeout):
-                print(datetime.datetime.now(), "Открыта вкладка снаряжения")
+                self.log_message("Открыта вкладка снаряжения.")
                 return True
             else:
-                print(datetime.datetime.now(), "Вкладка снаряжения не была открыта")
+                self.log_error("Вкладка снаряжения не была открыта!")
                 return False
         else:
-            print(datetime.datetime.now(), "Вкладка снаряжения не была найдена")
+            self.log_error("Вкладка снаряжения не была найдена!")
             return False
 
     def drop_chests(self):
@@ -1739,7 +1748,7 @@ class Player:
                 drop_button_coord = self.clicker.wait_for_image(drop_button, timeout=6)
                 if drop_button_coord is not None:
                     self.clicker.click(*drop_button_coord)
-                print(datetime.datetime.now(), "Выброшен сундук")
+                self.log_message("Выброшен сундук.")
                 time.sleep(1)
                 screen, offset = self.clicker.screen_lookup()
                 chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
@@ -1822,7 +1831,7 @@ class Player:
                  stop_action_image=None, very_slow=False, correct_rotation=True, stop_distance_diff=2):
         coords = self.locate(image=image, threshold=threshold)
         if not coords:
-            print(datetime.datetime.now(), 'Объект не найден')
+            self.log_error('Объект не найден!')
             return False
 
         closest_coord = min(coords, key=lambda x: math.dist(x, self.center))
@@ -1834,7 +1843,7 @@ class Player:
             stop_action_present = False
 
         if last_closest_distance <= distance or stop_action_present:
-            print(datetime.datetime.now(), 'Уже на месте')
+            self.log_message('Уже на месте.')
             return True
 
         self.rotate_to_radar(closest_coord, sync=True)
@@ -1910,7 +1919,7 @@ class Player:
         if not dandelions:
             self.lookup_coords()
             radar_coord = str(self.radar_coords).replace(', ', ':')
-            print(datetime.datetime.now(), f"Одуванчиков не найдено {radar_coord}")
+            self.log_error(f"Одуванчиков не найдено {radar_coord}!")
             return False
 
         # closest_dandelion_coord = min(dandelions_coord, key=lambda x: math.dist(x, self.center))
@@ -1946,7 +1955,7 @@ class Player:
             self.scale_out_radar()
             self.lookup_coords()
             radar_coord = str(self.radar_coords).replace(', ', ':')
-            print(datetime.datetime.now(), f"Потерян одуванчик после подлёта к нему {radar_coord}")
+            self.log_error(f"Потерян одуванчик после подлёта к нему {radar_coord}!")
             return False
         closest_dandelion_coord = min(dandelions_coord, key=lambda x: math.dist(x, self.center))
         self.rotate_to_radar(closest_dandelion_coord, sync=True)
@@ -1981,10 +1990,10 @@ class Player:
         dialog_button_coord = self.clicker.find_image(dialog_button, screen=screen, offset=offset)
         if dialog_button_coord is not None:
             self.clicker.click(*dialog_button_coord)
-            print(datetime.datetime.now(), "Начат диалог")
+            self.log_message("Начат диалог.")
             return True
         else:
-            print(datetime.datetime.now(), "Кнопка начала диалога не была найдена")
+            self.log_error("Кнопка начала диалога не была найдена!")
             return False
 
     def select_dialog_option(self, option, index=1):
@@ -2019,7 +2028,7 @@ class Player:
         time.sleep(.5)
         self.clicker.send_chars(message, key_delay=key_delay)
         self.clicker.keypress(self.enter_key)
-        print(datetime.datetime.now(), f"Отправлено сообщение в чат \"{message}\"")
+        self.log_message(f"Отправлено сообщение в чат \"{message}\".")
 
     def invite_to_party(self, name):
         self.send_message_to_chat(f'/invite {name}')
@@ -2031,10 +2040,10 @@ class Player:
                 invite_button_coord[1] + int(h / 2)
             )
             self.clicker.click(*invite_button_coord)
-            print(datetime.datetime.now(), f"Отправлено приглашение в группу игроку {name}")
+            self.log_message(f"Отправлено приглашение в группу игроку {name}.")
             return True
         else:
-            print(datetime.datetime.now(), f"Не удалось отправить приглашение в группу игроку {name}")
+            self.log_error(f"Не удалось отправить приглашение в группу игроку {name}!")
             return False
 
     def wait_for_party_request(self):
@@ -2179,16 +2188,16 @@ class Player:
                     bad_fishing_tries = 0
                     full_net_coord = self.clicker.find_image(full_net_img, window=catching_window_coord, screen=screen, offset=offset)
                     if full_net_coord or not is_farm_not_ended:
-                        # print(datetime.datetime.now(), 'Сеть заполнилась.')
+                        # self.log_message('Сеть заполнилась.')
                         pickup_coord = self.clicker.find_image(pickup_img, window=catching_window_coord, screen=screen, offset=offset)
                         if pickup_coord:
-                            print(datetime.datetime.now(), 'Поднять сеть.')
+                            self.log_message('Поднять сеть.')
                             fishing_in_progress = False
                             self.clicker.click(*pickup_coord)
                             time.sleep(3)
                             continue
                     else:
-                        print(datetime.datetime.now(), 'Продолжить ловить.')
+                        self.log_message('Продолжить ловить.')
                         fishing_in_progress = True
                         continue_click_coord = (
                             continue_coord[0] + random.randint(1, 5),
@@ -2209,19 +2218,19 @@ class Player:
                         catching_coord = self.clicker.find_image(catching_img, screen=screen, offset=offset)
 
                     if catching_coord:
-                        # print(datetime.datetime.now(), 'Ловля в прогрессе.')
+                        # self.log_message('Ловля в прогрессе.')
                         # bad_fishing_tries = 0
                         catching_window_coord = (
                         catching_coord[0] - 10, catching_coord[1], catching_coord[0] + 400, catching_coord[1] + 600)
                     else:
                         start_catch_coord = self.find_action(start_catch_img, screen=screen, offset=offset)
                         if start_catch_coord:
-                            print(datetime.datetime.now(), 'Начало рыбалки.')
+                            self.log_message('Начало рыбалки.')
                             fishing_in_progress = True
                             # bad_fishing_tries = 0
                             self.clicker.click(*start_catch_coord)
                         else:
-                            print(datetime.datetime.now(), 'Кнопка начала рыбалки не была найдена!')
+                            self.log_error('Кнопка начала рыбалки не была найдена!')
                             bad_fishing_tries += 1
                             fishing_in_progress = False
                             if bad_fishing_tries > max_bad_fishing_tries:
@@ -2237,12 +2246,12 @@ class Player:
 
                 time.sleep(self.delay_between_farm_attempts)
             except win32ui.error:
-                print(datetime.datetime.now(),
+                self.log_error(
                       f'Случилась внутренняя ошибка windows при определении окна, '
                       f'будет произведена повторная попытка получить окно {self.clicker.hwnd}.')
                 continue
             except ValueError:
-                print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
+                self.log_error(f"Разверните окно {self.clicker.hwnd}!")
                 beep(sync=True)
 
     def dandelion_cycle(self):
@@ -2298,7 +2307,7 @@ class Player:
             #           f'будет произведена повторная попытка получить окно {self.clicker.hwnd}.')
             #     continue
             # except ValueError:
-            #     print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
+            #     self.log_error(f"Разверните окно {self.clicker.hwnd}!")
             #     beep(sync=True)
 
     def woodcutting(self):
@@ -2311,14 +2320,14 @@ class Player:
         broken_saw_image = broken_saw_big_image
         not_broken_saw_image = not_broken_saw_big_image
 
-        print(datetime.datetime.now(), "Поиск дровосека среди техустройств...")
+        self.log_message("Поиск дровосека среди техустройств...")
         tech_saw_found = self.clicker.wait_for_image(tech_slot_saw, window=self.tech_window, threshold=self.tech_detection_precision, timeout=30)
         if not tech_saw_found:
-            print(datetime.datetime.now(), "Не удалось найти дровосека среди техустройств!")
+            self.log_error("Не удалось найти дровосека среди техустройств!")
             return False
 
         tech_saw_slot_number = self.get_tech_slot_number(tech_slot_saw)
-        print(datetime.datetime.now(), f"Найден дровосек среди техустройств: {tech_saw_slot_number}.")
+        self.log_message(f"Найден дровосек среди техустройств: {tech_saw_slot_number}.")
 
         # if self.approach(tree_spot_image, distance=self.fishing_spot_approach_distance, threshold=self.fishing_spot_detection_precision):
         #     time.sleep(3)
@@ -2369,14 +2378,14 @@ class Player:
                     if not self.get_auto_use(tech_saw_slot_number):
                         self.stop_spam_attack()
                         if not self.change_saw():
-                            print(datetime.datetime.now(), "Дровосеки закончились")
+                            self.log_error("Дровосеки закончились!")
                             if self.do_looting:
                                 self.scale_out_radar()
                             break
                         self.start_spam_attack()
                         # self.last_looting_time = time.time() + 30
                 else:
-                    print(datetime.datetime.now(), 'Кнопка запуска дровосека не была найдена!')
+                    self.log_error('Кнопка запуска дровосека не была найдена!')
 
                     self.stop_spam_attack()
 
@@ -2423,12 +2432,12 @@ class Player:
 
                 time.sleep(self.delay_between_farm_attempts)
             except win32ui.error:
-                print(datetime.datetime.now(),
+                self.log_error(
                       f'Случилась внутренняя ошибка windows при определении окна, '
                       f'будет произведена повторная попытка получить окно {self.clicker.hwnd}.')
                 continue
             except ValueError:
-                print(datetime.datetime.now(), f"Разверните окно {self.clicker.hwnd}!")
+                self.log_error(f"Разверните окно {self.clicker.hwnd}!")
                 beep(sync=True)
 
     def find_tech(self, tech_image, screen=None, offset=None):
@@ -2537,7 +2546,7 @@ class Player:
             window=(items_from_storage_title_coord[0] - 10, items_from_storage_title_coord[1] - 10, -1, -1))
 
     def change_saw(self):
-        print(datetime.datetime.now(), "Замена дровосека")
+        self.log_message("Замена дровосека.")
 
         self.close_all_windows()
         self.open_equipment()
@@ -2548,22 +2557,22 @@ class Player:
             not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image, screen=screen, offset=offset)
             if not_broken_saw_coord is not None:
                 self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
-                print(datetime.datetime.now(), "Дровосек заменен")
+                self.log_message("Дровосек заменен.")
                 time.sleep(1)
                 self.clicker.keypress(self.auto_use_all_key)
                 # time.sleep(30)
             else:
-                print(datetime.datetime.now(), "Дровосек для замены не был найден")
+                self.log_error("Дровосек для замены не был найден!")
                 self.close_all_windows()
                 return False
         else:
             not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
             if not_broken_saw_coord is None:
-                print(datetime.datetime.now(), "Дровосек не экипирован, чтобы его можно было заменить")
+                self.log_error("Дровосек не экипирован, чтобы его можно было заменить!")
                 self.close_all_windows()
                 return False
             else:
-                print(datetime.datetime.now(), "Замена дровосека не требуется")
+                self.log_message("Замена дровосека не требуется.")
 
             self.clicker.keypress(self.auto_use_all_key)
 
@@ -2584,7 +2593,7 @@ class Player:
         if shop_coord is not None:
             self.clicker.click(*shop_coord)
         else:
-            print(datetime.datetime.now(), "Кнопка магазина не была найдена!")
+            self.log_error("Кнопка магазина не была найдена!")
             return False
 
         shop_item_coord = None
@@ -2593,7 +2602,7 @@ class Player:
             if shop_item_coord is not None:
                 self.clicker.click(*shop_item_coord)
             else:
-                print(datetime.datetime.now(), "Не найден пункт в магазине")
+                self.log_error("Не найден пункт в магазине!")
                 self.exit()
                 return False
 
@@ -2601,10 +2610,10 @@ class Player:
             buy_for_coord = self.clicker.wait_for_image(buy_for_button, centers=True, timeout=self.action_timeout)
             if buy_for_coord is not None:
                 self.clicker.click(*buy_for_coord)
-                print(datetime.datetime.now(), "Куплен предмет в магазине")
+                self.log_message("Куплен предмет в магазине.")
                 time.sleep(1)
             else:
-                print(datetime.datetime.now(), "Не найдена кнопка \"Купить за\" предмета в магазине")
+                self.log_error("Не найдена кнопка \"Купить за\" предмета в магазине!")
                 self.exit()
                 return False
 
@@ -2623,7 +2632,7 @@ class Player:
         broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
         not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
         if broken_saw_coord is None and not_broken_saw_coord is None:
-            print(datetime.datetime.now(), "Дровосек не экипирован, фарм будет завершен")
+            self.log_error("Дровосек не экипирован, фарм будет завершен!")
             self.repeat_cycle_forever = False
             self.close_all_windows()
             return False
@@ -2644,7 +2653,7 @@ class Player:
             not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image)
             if not_broken_saw_coord is not None:
                 self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
-                print(datetime.datetime.now(), "Сломанный дровосек заменен на новый")
+                self.log_message("Сломанный дровосек заменен на новый.")
                 saw_equipped_successful = True
             else:
                 self.close_all_windows()
@@ -2652,7 +2661,7 @@ class Player:
                 if not self.buy_in_shop([shop_equipment_button, buy_saw_big_button],
                                         amount=self.additional_saw_amount + 1,
                                         wait_shop=True):
-                    print(datetime.datetime.now(), "Фарм будет завершен!")
+                    self.log_error("Фарм будет завершен!")
                     self.repeat_cycle_forever = False
                     return False
 
@@ -2672,20 +2681,20 @@ class Player:
                 broken_saw_coord = self.find_equipped_slot(broken_saw_big_image, screen=screen, offset=offset)
                 not_broken_saw_coord = self.find_slot_in_items(not_broken_saw_big_image, screen=screen, offset=offset)
                 if not_broken_saw_coord is None:
-                    print(datetime.datetime.now(), "Не найден дровосек в снаряжении")
+                    self.log_error("Не найден дровосек в снаряжении!")
                     saw_equipped_successful = False
                 elif broken_saw_coord is None:
-                    print(datetime.datetime.now(), "Не найден сломанный дровосек в техустройствах")
+                    self.log_error("Не найден сломанный дровосек в техустройствах!")
                     saw_equipped_successful = False
                 else:
                     self.clicker.drag_and_drop(*not_broken_saw_coord, *broken_saw_coord)
-                    print(datetime.datetime.now(), "Сломанный дровосек заменен на новый")
+                    self.log_message("Сломанный дровосек заменен на новый.")
                     saw_equipped_successful = True
 
         self.close_all_windows()
 
         if not saw_equipped_successful:
-            print(datetime.datetime.now(), "Не удалось экипировать дровосек, фарм будет завершен")
+            self.log_error("Не удалось экипировать дровосек, фарм будет завершен!")
             self.repeat_cycle_forever = False
             return False
 
@@ -2724,9 +2733,9 @@ class Player:
             broken_saw_storage_coord = self.clicker.find_image(broken_saw_big_storage_image, centers=True,
                                                                screen=screen, offset=offset)
         if thrown_away_saw_count > 0:
-            print(datetime.datetime.now(), f"Выкинуто {thrown_away_saw_count} сломанных дровосеков")
+            self.log_message(f"Выкинуто {thrown_away_saw_count} сломанных дровосеков.")
         else:
-            print(datetime.datetime.now(), "Сломанных дровосеков не обнаружено")
+            self.log_message("Сломанных дровосеков не обнаружено.")
 
         # Цикл закидывания в трюм целых пил
         if self.additional_saw_amount > 0:
@@ -2736,7 +2745,7 @@ class Player:
             in_cargo_saw_count = 0
             for i in range(in_cargo_saw_count, self.additional_saw_amount):
                 if not_broken_saw_storage_coord is None:
-                    print(datetime.datetime.now(), f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм")
+                    self.log_error(f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм!")
                     break
 
                 self.clicker.drag_and_drop(*not_broken_saw_storage_coord,
@@ -2756,7 +2765,7 @@ class Player:
                 if not self.buy_in_shop([shop_equipment_button, buy_saw_big_button],
                                         amount=self.additional_saw_amount - in_cargo_saw_count,
                                         wait_shop=True):
-                    print(datetime.datetime.now(), "Фарм будет завершен!")
+                    self.log_error("Фарм будет завершен!")
                     self.repeat_cycle_forever = False
                     return False
 
@@ -2779,7 +2788,7 @@ class Player:
                                                                        screen=screen, offset=offset)
                 for i in range(in_cargo_saw_count, self.additional_saw_amount):
                     if not_broken_saw_storage_coord is None:
-                        print(datetime.datetime.now(), f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм, фарм будет завершен")
+                        self.log_error(f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм, фарм будет завершен!")
                         self.repeat_cycle_forever = False
                         self.exit()
                         return False
@@ -2795,7 +2804,7 @@ class Player:
                                                                                screen=screen, offset=offset)
 
             if in_cargo_saw_count == self.additional_saw_amount:
-                print(datetime.datetime.now(), "Дровосеки переложены в трюм")
+                self.log_message("Дровосеки переложены в трюм.")
 
         self.exit()
 
