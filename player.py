@@ -2387,6 +2387,7 @@ class Player:
 
                     # if time.time() - self.last_looting_time > self.change_saw_after_no_looting_time:
                     if not self.get_auto_use(tech_saw_slot_number):
+                        self.log_error("Не включено автоиспользование дровосека!")
                         self.stop_spam_attack()
                         if not self.change_saw():
                             self.log_error("Дровосеки закончились!")
