@@ -100,7 +100,7 @@ if autofire:
                         attack.append(True)
 
     Thread(target=click_task, daemon=True).start()
-    attack_delay = .6
+    attack_delay = .5
     attack = []
     last_attack_time = time.time()
     while True:
@@ -187,9 +187,15 @@ if quest:
         player.fly_to(40, 47, "Быстро лететь к цели", target_bias=0, stop_at_destination=True)
         time.sleep(1)
 
-player.on_error_save_image = True
-player.open_storage()
-player.log_error('Блин, что за фигня?')
+
+import cv2
+radar_image = r"C:\Users\kiril\Downloads\photo_2026-02-04_12-49-31.jpg"
+screen, offset = clicker.screen_lookup(player.radar_window)
+radar_image = cv2.imread(radar_image)
+player.tunnel_detection_precision = .65
+
+
+# player.open_storage()
 # player.clicker.screen_lookup()
 # print(player.find_action(launch_saw_active_image))
 # player.clicker.keydown('[Shift]')
@@ -197,7 +203,7 @@ player.log_error('Блин, что за фигня?')
 # player.clicker.click(960, 200)
 # time.sleep(.5)
 # player.clicker.keyup('[Shift]')
-exit()
+# exit()
 # player.check_auto_use()
 # exit()
 # print(player.find_tech(tech_slot_saw))
@@ -329,9 +335,13 @@ hashes = dict()
 
 player.shower = shower
 while True:
-    if not player.get_auto_use(13):
-        print('FUCK')
-    shower.display(player.clicker.screen[:,:,::-1])
+    # screen, offset = clicker.screen_lookup(player.radar_window)
+    # coord = clicker.find_image(tunnel_img, threshold=player.tunnel_detection_precision, screen=screen, offset=offset, centers=True)
+    # if coord:
+    #     print(coord)
+    #     screen[coord[1] - offset[1], coord[0] - offset[0]] = [0, 0, 255]
+    player.lookup_coords()
+    shower.display(clicker.screen[:,:,::-1])
     continue
     # print(player.set_speed_arm_value(-1))
     # print(player.set_low_speed())

@@ -251,6 +251,7 @@ class Player:
     w = 2.75
     wr = round(w + 2, 0)
     green_buff = 1.07
+    radar_window = (-225, 15, -40, 200)
     action_window = (-70, 360, -1, -1)
     action_detection_precision = .8
     tech_window = (-600, -100, -265, -1)
@@ -612,9 +613,9 @@ class Player:
                 self.log_error('Склад не открыт!')
                 return False
         else:
-            screen, offset = self.clicker.screen_lookup()
+            screen, offset = self.clicker.screen_lookup(window=self.storage_filters_window)
             storage_search_box_coord = self.clicker.find_image(
-                image=storage_search_box, window=self.storage_filters_window, centers=True, screen=screen, offset=offset)
+                image=storage_search_box, centers=True, screen=screen, offset=offset)
             if storage_search_box_coord:
                 self.log_message('Склад открыт.')
                 return True
@@ -724,7 +725,7 @@ class Player:
         if not self.enemy_types:
             return []
         # start = time.time()
-        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         neutral_enemies = []
         if 'neutral' in self.enemy_types:
             enemy_replace_pixels = 5
@@ -778,7 +779,7 @@ class Player:
 
         bosses = []
         if 'boss' in self.enemy_types:
-            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+            screen, offset = self.clicker.screen_lookup(window=self.radar_window)
             bosses = self.clicker.find_images(boss, min_dist=10, threshold=.8, centers=True, screen=screen, offset=offset)
 
         enemies = neutral_enemies + aggressive_enemies + special_enemies + bosses
@@ -817,7 +818,7 @@ class Player:
 
         if distance_to_enemy > 20 and cos_enemy_city > 0:
             if screen is None or offset is None:
-                screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+                screen, offset = self.clicker.screen_lookup(window=self.radar_window)
 
             for pixel_index in range(4, int(distance_to_enemy) - 10, 1):
                 outer_target_pixel = self.clicker.pixel(
@@ -880,6 +881,8 @@ class Player:
                         time.sleep(.01)
                         self.clicker.dblclick(*enemy_coord)
                         time.sleep(.01)
+                        if self.press_esc_after_radar_action:
+                            self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
                     else:
                         self.clicker.keypress(self.fire_key)
                         self.last_attack_time = time.time()
@@ -887,9 +890,6 @@ class Player:
 
             if jump:
                 self.clicker.keypress(self.force_forward_key)
-
-            if self.press_esc_after_radar_action and self.smart_targeting and enemy_coords:
-                self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
 
             self.clicker.dblclick(0, 0)  # Чтобы убрать курсор с радара и ускориться
         else:
@@ -909,7 +909,7 @@ class Player:
     def locate_loot(self):
         loot = []
         loot_replace_radius = 4
-        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         replace_color = (0, 0, 0)
         # locate loot
         loot_pixel = self.clicker.find_pixel(color=(255, 229, 0), screen=screen, offset=offset)
@@ -939,6 +939,8 @@ class Player:
                 time.sleep(.01)
                 self.clicker.dblclick(*coord_to_click)
                 time.sleep(.01)
+                if self.press_esc_after_radar_action:
+                    self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
 
         if looting:
             screen, offset = self.clicker.screen_lookup()
@@ -952,8 +954,6 @@ class Player:
                 self.break_target()
 
             self.clicker.move(0, 0)  # Чтобы убрать курсор с радара
-            if self.press_esc_after_radar_action:
-                self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
 
             self.last_looting_time = time.time()
 
@@ -1282,6 +1282,8 @@ class Player:
             vortex_coord = min(vortex_coord, key=lambda x: math.dist(x, self.center)) if vortex_coord else None
             if vortex_coord is not None:
                 self.clicker.click(*vortex_coord)
+                if self.press_esc_after_radar_action:
+                    self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
                 return True
             else:
                 self.log_error("Вихрь не был найден!")
@@ -1414,33 +1416,35 @@ class Player:
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
 
+        self.close_all_windows()
+
         self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
 
         self.scale_in_radar()
 
         for i in range(tries):
-            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-            tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
+            screen, offset = self.clicker.screen_lookup(window=self.radar_window)
+            tunnel_coord = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision,
+                                                   centers=True, screen=screen, offset=offset)
 
-            if tunnel is None:
+            if tunnel_coord is None:
                 self.log_error('Тоннель не обнаружен!')
             else:
-                h, w, _ = tunnel_img.shape
-                click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
-                self.clicker.move(*click_coord)
+                self.clicker.move(*tunnel_coord)
                 time.sleep(.1)
-                self.clicker.dblclick(*click_coord)
+                self.clicker.dblclick(*tunnel_coord)
+                time.sleep(.1)
+
+                if self.press_esc_after_radar_action:
+                    self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
+
                 tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
                     self.log_error('Окно воздушных течений не было найдено!')
                 else:
-                    screen, offset = self.clicker.screen_lookup()
-                    base_option_coord = self.clicker.find_image(
-                        tunnel_window_base_title,
-                        window=(*tunnel_window_coord, tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400),
-                        screen=screen,
-                        offset=offset
-                    )
+                    screen, offset = self.clicker.screen_lookup(
+                        window=(*tunnel_window_coord, tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400))
+                    base_option_coord = self.clicker.find_image(tunnel_window_base_title, screen=screen, offset=offset)
                     if base_option_coord is None:
                         self.log_error('База клана не найдена в списке воздушных течений!')
                     else:
@@ -1463,22 +1467,28 @@ class Player:
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
 
+        self.close_all_windows()
+
         self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
 
         self.scale_in_radar()
 
         for i in range(tries):
-            screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
-            tunnel = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision, screen=screen, offset=offset)
+            screen, offset = self.clicker.screen_lookup(window=self.radar_window)
+            tunnel_coord = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision,
+                                                   centers=True, screen=screen, offset=offset)
 
-            if tunnel is None:
+            if tunnel_coord is None:
                 self.log_error('Тоннель не обнаружен!')
             else:
-                h, w, _ = tunnel_img.shape
-                click_coord = tunnel[0] + int(w / 2), tunnel[1] + int(h / 2)
-                self.clicker.move(*click_coord)
+                self.clicker.move(*tunnel_coord)
                 time.sleep(.1)
-                self.clicker.dblclick(*click_coord)
+                self.clicker.dblclick(*tunnel_coord)
+                time.sleep(.1)
+
+                if self.press_esc_after_radar_action:
+                    self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
+
                 tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
                     self.log_error('Окно воздушных течений не было найдено!')
@@ -1529,6 +1539,9 @@ class Player:
 
     def fly_from_base_to(self, destination_name):
         result = False
+
+        self.close_all_windows()
+
         self.clicker.click(-130, 100)
         tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
         if tunnel_window_coord is None:
@@ -1754,7 +1767,7 @@ class Player:
                 chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
 
     def locate(self, image, threshold=.85, min_dist=10):
-        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         coords = self.clicker.find_images(image, threshold=threshold, centers=True, min_dist=min_dist, screen=screen, offset=offset)
         return coords
 
@@ -1893,7 +1906,7 @@ class Player:
         return True
 
     def locate_dandelions(self, return_dandelion_image=False):
-        screen, offset = self.clicker.screen_lookup(window=(-225, 15, -40, 200))
+        screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         dandelions = []
         for dandelion_type in [pink_dandelion, green_dandelion, orange_dandelion]:
             dandelions_of_type = self.clicker.find_images(dandelion_type, min_dist=10,
@@ -1986,8 +1999,8 @@ class Player:
             time.sleep(.3)
 
     def start_dialog(self):
-        screen, offset = self.clicker.screen_lookup()
-        dialog_button_coord = self.clicker.find_image(dialog_button, screen=screen, offset=offset)
+        screen, offset = self.clicker.screen_lookup(window=self.action_window)
+        dialog_button_coord = self.clicker.find_image(dialog_button, centers=True, screen=screen, offset=offset)
         if dialog_button_coord is not None:
             self.clicker.click(*dialog_button_coord)
             self.log_message("Начат диалог.")
@@ -2010,17 +2023,14 @@ class Player:
             return False
         else:
             screen, offset = self.clicker.screen_lookup()
-            options = self.clicker.find_images(option_image, min_dist=5, screen=screen, offset=offset)
+            options = self.clicker.find_images(option_image, min_dist=5, centers=True, screen=screen, offset=offset)
             if index < len(options):
                 selected_option = options[index]
-                h, w, _ = option_image.shape
-                selected_option = (
-                    selected_option[0] + int(w / 2),
-                    selected_option[1] + int(h / 2)
-                )
                 self.clicker.click(*selected_option)
+                self.log_message(f"Выбрана опция диалога \"{option.capitalize()} {index + 1}\".")
                 return True
             else:
+                self.log_error(f"Опция диалога \"{option.capitalize()} {index + 1}\" недоступна для выбора!")
                 return False
 
     def send_message_to_chat(self, message, key_delay=.1):
@@ -2032,13 +2042,8 @@ class Player:
 
     def invite_to_party(self, name):
         self.send_message_to_chat(f'/invite {name}')
-        invite_button_coord = self.clicker.wait_for_image(invite_button, timeout=self.action_timeout)
+        invite_button_coord = self.clicker.wait_for_image(invite_button, centers=True, timeout=self.action_timeout)
         if invite_button_coord is not None:
-            h, w, _ = invite_button.shape
-            invite_button_coord = (
-                invite_button_coord[0] + int(w / 2),
-                invite_button_coord[1] + int(h / 2)
-            )
             self.clicker.click(*invite_button_coord)
             self.log_message(f"Отправлено приглашение в группу игроку {name}.")
             return True
@@ -2047,56 +2052,48 @@ class Player:
             return False
 
     def wait_for_party_request(self):
-        screen, offset = self.clicker.screen_lookup()
+        screen, offset = self.clicker.screen_lookup(window=self.action_window)
         party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
         while party_request_coord is None:
             if self.is_dead():
                 raise ValueError
             time.sleep(1)
-            screen, offset = self.clicker.screen_lookup()
+            screen, offset = self.clicker.screen_lookup(window=self.action_window)
             party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
+        self.log_message("Получено приглашение в группу.")
         return True
 
     def accept_party_request(self):
-        screen, offset = self.clicker.screen_lookup()
-        party_request_coord = self.clicker.find_image(party_request, screen=screen, offset=offset)
+        screen, offset = self.clicker.screen_lookup(window=self.action_window)
+        party_request_coord = self.clicker.find_image(party_request, centers=True, screen=screen, offset=offset)
         if party_request_coord is not None:
-            h, w, _ = party_request.shape
-            party_request_coord = (
-                party_request_coord[0] + int(w / 2),
-                party_request_coord[1] + int(h / 2),
-            )
             self.clicker.click(*party_request_coord)
-            accept_coord = self.clicker.wait_for_image(accept_button, timeout=self.action_timeout)
+            accept_coord = self.clicker.wait_for_image(accept_button, centers=True, timeout=self.action_timeout)
             if accept_coord is not None:
-                h, w, _ = accept_button.shape
-                accept_coord = (
-                    accept_coord[0] + int(w / 2),
-                    accept_coord[1] + int(h / 2)
-                )
                 self.clicker.click(*accept_coord)
+                self.log_message("Принято приглашение в группу.")
                 return True
             else:
+                self.log_error("Кнопка принятия приглашения в группу не была найдена!")
                 return False
         else:
+            self.log_error("Кнопка приглашения в группу не была найдена!")
             return False
 
     def suicide(self):
         self.send_message_to_chat('/die')
-        to_city_coord = self.clicker.wait_for_image(to_city_button, timeout=self.action_timeout)
+        to_city_coord = self.clicker.wait_for_image(to_city_button, centers=True, timeout=self.action_timeout)
         if to_city_coord is not None:
-            h, w, _ = to_city_button.shape
-            to_city_coord = (
-                to_city_coord[0] + int(w / 2),
-                to_city_coord[1] + int(h / 2)
-            )
             self.clicker.click(*to_city_coord)
             time.sleep(21)
             if self.is_dead(do_wait=False):
+                self.log_message("Совершен суицид.")
                 return True
             else:
+                self.log_error("Не удалось совершить суицид!")
                 return False
         else:
+            self.log_error("Не найдена кнопка \"В город\" (суицид)!")
             return False
 
     def start_new_game(self):
@@ -2189,7 +2186,8 @@ class Player:
                     full_net_coord = self.clicker.find_image(full_net_img, window=catching_window_coord, screen=screen, offset=offset)
                     if full_net_coord or not is_farm_not_ended:
                         # self.log_message('Сеть заполнилась.')
-                        pickup_coord = self.clicker.find_image(pickup_img, window=catching_window_coord, screen=screen, offset=offset)
+                        pickup_coord = self.clicker.find_image(pickup_img, centers=True, window=catching_window_coord,
+                                                               screen=screen, offset=offset)
                         if pickup_coord:
                             self.log_message('Поднять сеть.')
                             fishing_in_progress = False
