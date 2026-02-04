@@ -2724,9 +2724,19 @@ class Player:
 
         # Ищем окно со складом
         screen, offset = self.clicker.screen_lookup()
-        storage_tabs_coord = self.clicker.find_images(storage_tab, screen=screen, offset=offset, min_dist=10)
+        storage_tabs_coord = self.clicker.find_images(storage_tab, centers=True,
+                                                      screen=screen, offset=offset, min_dist=10)
         main_storage_tab_coord = max(storage_tabs_coord, key=lambda x: x[0])
-        storage_window = (main_storage_tab_coord[0] - 10, main_storage_tab_coord[1] - 10, -1, self.storage_filters_window[1])
+        storage_window = (main_storage_tab_coord[0] - 30, main_storage_tab_coord[1] - 10, -1, self.storage_filters_window[1])
+
+        # Открываем нужные вкладки склада
+        cargo_tab_coord = self.clicker.find_image(cargo_tab, centers=True, screen=screen, offset=offset)
+        self.clicker.click(*cargo_tab_coord)
+        self.log_message("Выбрана вкладка склада \"Трюм\".")
+        time.sleep(1)
+        self.clicker.click(*main_storage_tab_coord)
+        self.log_message("Выбрана вкладка склада \"Склад\".")
+        time.sleep(1)
 
         # Цикл выкидывания сломанных дровосеков
         thrown_away_saw_count = 0
