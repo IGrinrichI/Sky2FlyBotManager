@@ -5,7 +5,6 @@ import time
 import cv2
 import numpy as np
 import psutil
-import win32clipboard
 import win32gui
 from kivy.app import App
 from kivy.clock import Clock
@@ -207,10 +206,21 @@ class ClientButton(BoxLayout):
             self.layout.add_widget(self.log_button)
 
     def log_event(self, *args, **kwargs):
-        win32clipboard.OpenClipboard()
-        win32clipboard.EmptyClipboard()
-        win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, self.log_text)
-        win32clipboard.CloseClipboard()
+        # import win32clipboard
+        # win32clipboard.OpenClipboard()
+        # win32clipboard.EmptyClipboard()
+        # win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, self.log_text)
+        # win32clipboard.CloseClipboard()
+        from kivy.uix.popup import Popup
+        from kivy.uix.textinput import TextInput
+        from kivy.core.window import Window
+        Popup(
+            title='Лог программы',
+            content=TextInput(text=self.log_text, multiline=True),
+            size_hint=(None, None),
+            size=(Window.size[0] - 100, Window.size[1] - 50) # Set a specific size
+            # size=(400, 300)  # Set a specific size
+        ).open()
 
 
 class ClientsWidget(ScrollView):
