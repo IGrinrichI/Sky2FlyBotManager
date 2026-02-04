@@ -965,7 +965,11 @@ class Player:
         for key, image in coord_imgs.items():
             result_coords.extend((coord[0], key) for coord in self.clicker.find_images(image, threshold=.99, screen=screen, offset=offset))
         coords_str = ''.join(map(lambda coord_value: coord_value[1], sorted(result_coords, key=lambda x: x[0])))
-        self.radar_coords = tuple(map(int, coords_str.split(':')))
+        try:
+            self.radar_coords = tuple(map(int, coords_str.split(':')))
+        except ValueError:
+            self.log_error("Координаты радара не обнаружены, возможно корабль не в небе!")
+            raise
         self.distance_to_area = math.dist(self.radar_coords, self.area_coords)
         if self.distance_to_area > 0:
             self.area_direction = (
