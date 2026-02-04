@@ -55,6 +55,7 @@ service_button = cv2.imread(resource_path(os.path.join('images', 'service.bmp'))
 service_title = cv2.imread(resource_path(os.path.join('images', 'service_title.png')))
 service_all_button = cv2.imread(resource_path(os.path.join('images', 'service_all.bmp')))
 service_tech_button = cv2.imread(resource_path(os.path.join('images', 'service_tech.png')))
+service_quit_button = cv2.imread(resource_path(os.path.join('images', 'service_quit.png')))
 take_all_button = cv2.imread(resource_path(os.path.join('images', 'take_all.bmp')))
 storage_button = cv2.imread(resource_path(os.path.join('images', 'storage.bmp')))
 all_to_storage_button = cv2.imread(resource_path(os.path.join('images', 'all_to_storage.bmp')))
@@ -589,9 +590,17 @@ class Player:
                         self.clicker.click(*service_tech_coord)
                         return True
                     else:
-                        self.log_error('Кнопка зарядки сервиса не была найдена!')
-                        self.clicker.click(*service_coord)
-                        return False
+                        service_quit_coord = self.clicker.find_image(image=service_quit_button, threshold=.8,
+                                                                     centers=True,
+                                                                     screen=screen, offset=offset)
+                        if service_quit_coord:
+                            self.log_message('Выйти из сервиса.')
+                            self.clicker.click(*service_quit_coord)
+                            return True
+                        else:
+                            self.log_error('Кнопка зарядки сервиса не была найдена!')
+                            self.clicker.click(*service_coord)
+                            return False
             else:
                 self.log_error('Окно сервиса не открылось за отведенное время!')
                 return False
