@@ -460,10 +460,10 @@ class Player:
         self.clicker = clicker
 
     def log_message(self, text):
-        print(datetime.datetime.now(), text)
+        print(str(datetime.datetime.now()), text)
 
     def log_error(self, text):
-        print(datetime.datetime.now(), text)
+        print(str(datetime.datetime.now()), text)
         if self.on_error_save_image:
             self.clicker.save_dump(text)
 
