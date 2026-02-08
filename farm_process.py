@@ -11,6 +11,8 @@ from clicker import Clicker
 from player import Player
 import win32con
 
+from ram_cleaner import start_ram_cleaner
+
 
 def beep(freq=1000, sync=False):
     def _beep():
@@ -35,6 +37,10 @@ def farm_process(hwnd, preset, trial_time, child_conn):
 
     # Выставляем пресет
     player.load_preset(preset)
+
+    # Запускаем периодическую очистку RAM
+    if player.clean_ram_periodically:
+        start_ram_cleaner(hwnd=hwnd, max_ram=player.min_ram_to_clean)
 
     print(datetime.datetime.now(), 'Процесс запущен.')
 
