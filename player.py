@@ -2142,7 +2142,7 @@ class Player:
             self.log_error("Кнопка начала диалога не была найдена!")
             return False
 
-    def select_dialog_option(self, option, index=1):
+    def select_dialog_option(self, option, index=1, search_text=""):
         index = index - 1
         option_image = {
             'стандарт': dialog_option,
@@ -2157,14 +2157,47 @@ class Player:
         else:
             screen, offset = self.clicker.screen_lookup()
             options = self.clicker.find_images(option_image, min_dist=5, centers=True, screen=screen, offset=offset)
-            if index < len(options):
-                selected_option = options[index]
-                self.clicker.click(*selected_option)
-                self.log_message(f"Выбрана опция диалога \"{option.capitalize()} {index + 1}\".")
-                return True
+
+            if search_text:
+                min_x = min(options, key=lambda o: o[0])[0]
+                window = (
+                    min_x,
+                    min(options, key=lambda o: o[1])[1] - 10,
+                    min_x + 450,
+                    max(options, key=lambda o: o[1])[1] + 10
+                )
+                screen, offset = self.clicker.screen_lookup(window=window)
+
+                result = False
+                for bbox, text, accuracy in self.ocr_reader.readtext(screen):
+                    print(text)
+                    if search_text.lower() in text.lower():
+                        result = True
+                        x, y = bbox[0]
+                        x += offset[0]
+                        y += offset[1]
+                        self.clicker.move(x, y)
+                        self.clicker.click(x + 1, y + 1)
+                        self.log_message(f"Выбрана опция диалога \"{option.capitalize()}\" \"{search_text}\".")
+                        break
+
+                if not result:
+                    self.log_error(f"Опция диалога \"{option.capitalize()}\" \"{search_text}\" недоступна для выбора!")
+                    screen, offset = self.clicker.screen_lookup()
+                    option_coord = self.clicker.find_image(close_dialog_option, min_dist=5, centers=True, screen=screen, offset=offset)
+                    if option_coord:
+                        self.clicker.click(*option_coord)
+
+                return result
             else:
-                self.log_error(f"Опция диалога \"{option.capitalize()} {index + 1}\" недоступна для выбора!")
-                return False
+                if index < len(options):
+                    selected_option = options[index]
+                    self.clicker.click(*selected_option)
+                    self.log_message(f"Выбрана опция диалога \"{option.capitalize()} {index + 1}\".")
+                    return True
+                else:
+                    self.log_error(f"Опция диалога \"{option.capitalize()} {index + 1}\" недоступна для выбора!")
+                    return False
 
     def send_message_to_chat(self, message, key_delay=.1):
         self.clicker.keypress(self.enter_key)
