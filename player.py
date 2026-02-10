@@ -280,6 +280,7 @@ class Player:
     force_left_key = 'x'
     force_right_key = 'c'
     forward_key = 'w'
+    next_target_key = '[Tab]'
     break_target_key = 'z'
     fire_key = ' '
     inventory_key = 'i'
@@ -441,6 +442,7 @@ class Player:
         "force_left_key": "ускорение влево",
         "force_right_key": "ускорение вправо",
         "forward_key": "лететь вперед",
+        "next_target_key": "следующая цель",
         "break_target_key": "сбросить цель",
         "fire_key": "залп из всех орудий",
         "inventory_key": "трюм/корабль",
@@ -928,7 +930,7 @@ class Player:
                         if self.press_esc_after_radar_action:
                             self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
                     else:
-                        self.clicker.keypress(self.fire_key)
+                        self.clicker.keypress(self.next_target_key)
                         self.last_attack_time = time.time()
                     break
 
@@ -945,7 +947,8 @@ class Player:
                         self.clicker.keypress(self.fire_key)
                         self.last_attack_time = time.time()
             else:
-                self.clicker.keypress(self.fire_key)
+                if self.fire_when_smart_targeting:
+                    self.clicker.keypress(self.fire_key)
                 self.last_attack_time = time.time()
 
         return locked_on_enemy or target_enemy
