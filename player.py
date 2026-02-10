@@ -237,6 +237,7 @@ class Player:
     death_check_delay = 10
     death_check_last_time = 0
     after_death_wait_time_range = [300, 3600]
+    max_fly_time = 120
 
     available_directions_to_undock = ['с', 'ю', 'в', 'з', 'св', 'сз', 'юв', 'юз']
     coords_to_undock = {
@@ -418,6 +419,7 @@ class Player:
         "death_check_delay": "задержка между проверками подбит ли корабль",
         # "death_check_last_time": "",
         "after_death_wait_time_range": "диапазон времени в секундах, сколько ждать после смерти игрока перед началом нового цикла",
+        "max_fly_time": "максимальное полетное время",
         
         "available_directions_to_undock": "доступные для вылета направления",
         # "coords_to_undock": "",
@@ -1377,6 +1379,7 @@ class Player:
                 stop_if_enemy_in_front_of_ship = False
                 speed_up = False
 
+        fly_start_time = time.time()
         loot = loot if loot is not None else self.loot_on_fly
         target_bias = target_bias if target_bias is not None else self.target_bias
         stop_at_destination = stop_at_destination if stop_at_destination is not None else self.stop_at_destination
@@ -1408,6 +1411,15 @@ class Player:
             if self.is_quit_available(only_check=True):
                 self.stop_rotation()
                 return True
+
+            if time.time() - fly_start_time > self.max_fly_time:
+                self.clicker.keypress(win32con.VK_DOWN)
+                self.stop_rotation()
+
+                while not self.suicide():
+                    self.lookup_coords()
+
+                raise ValueError
 
             self.clicker.keypress(self.force_key if speed_up else self.forward_key)
             if loot:
