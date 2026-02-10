@@ -1310,11 +1310,12 @@ class Player:
     def rotate_to_target(self, sync=True):
         self.rotate_to_direction(self.target_direction, angle=self.target_angle, sync=sync)
 
-    def wait_for_warp(self):
+    def wait_for_warp(self, timeout=None):
+        start_time = time.time()
         self.lookup_coords()
         initial_player_coord = self.radar_coords
         last_player_coord = initial_player_coord
-        while True:
+        while timeout is None and time.time() - start_time < timeout:
             if self.is_dead():
                 raise ValueError
 
