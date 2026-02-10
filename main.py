@@ -32,7 +32,8 @@ from pynput import keyboard
 
 from clicker import Clicker
 from player import Player, tunnel_img, vortex_img, fly_in_button, launch_saw_active_image, properties_tab, \
-    reload_button, not_broken_saw_big_image, tech_slot_saw
+    reload_button, not_broken_saw_big_image, tech_slot_saw, storage_tab, cargo_tab, flyagers_img, mushroom_man_img, \
+    catching_img, delyanka_fire_tg_img, meteostation_tg_img
 import win32con
 import win32gui
 
@@ -87,6 +88,7 @@ clicker.hwnd = get_s2f_hwnds()[0]
 player = Player(clicker=clicker)
 autofire = False
 quest = False
+
 
 if autofire:
     def click_task():
@@ -188,11 +190,39 @@ if quest:
         time.sleep(1)
 
 
-import cv2
-radar_image = r"C:\Users\kiril\Downloads\photo_2026-02-04_12-49-31.jpg"
-screen, offset = clicker.screen_lookup(player.radar_window)
-radar_image = cv2.imread(radar_image)
-player.tunnel_detection_precision = .65
+# player.approach(delyanka_fire_tg_img, threshold=.65, distance=15)
+
+# exit()
+# import cv2
+# screen, offset = clicker.screen_lookup((-170, -119, -164, -50))
+# screen[(screen[:,:,2] > screen[:,:,1]) & (screen[:,:,2] - screen[:,:, 1] > 50)] = (0, 0, 255)
+# print(screen[(screen[:,:,2] > screen[:,:,1]) & (screen[:,:,2] - screen[:,:, 1] > 50) & (screen[:,:,2] > screen[:,:,0]) & (screen[:,:,2] - screen[:,:,0] > 50)])
+# screen[(screen[:,:,2] > screen[:,:,1]) & (screen[:,:,2] - screen[:,:, 1] > 50) & (screen[:,:,2] > screen[:,:,0]) & (screen[:,:,2] - screen[:,:,0] > 50)] = (0, 0, 255)
+# cv2.imwrite('screen.png', screen)
+# from ram_cleaner import clear_process_ram
+# clear_process_ram(hwnd=clicker.hwnd)
+# player.drop_chests()
+# from ram_cleaner import start_ram_cleaner
+# start_ram_cleaner(clicker.hwnd)
+#
+# time.sleep(10000)
+# player.enemy_types = ["boss"]
+# print(player.locate_enemies()[0])
+# player.select_dialog_option("Стандарт", 1, "сложное")
+# # player.select_dialog_option("Стандарт", 1, "поподробнее")
+# time.sleep(1)
+# player.select_dialog_option("Стандарт", 1, "согласен")
+# time.sleep(1)
+# player.select_dialog_option("Стандарт", 1, "отправляемся")
+# # time.sleep(1)
+# # player.select_dialog_option("Вопрос", 1, "Ok")
+# exit()
+#
+# import cv2
+# radar_image = r"C:\Users\kiril\Downloads\photo_2026-02-04_12-49-31.jpg"
+# screen, offset = clicker.screen_lookup(player.radar_window)
+# radar_image = cv2.imread(radar_image)
+# player.tunnel_detection_precision = .65
 
 
 # player.open_storage()
@@ -335,21 +365,30 @@ hashes = dict()
 
 player.shower = shower
 while True:
+
+    # screen, offset = clicker.screen_lookup((-170, -117, -168, -65))
+    # print(np.argwhere((screen[:, :, 2] > screen[:, :, 1]) & (screen[:, :, 2] - screen[:, :, 1] > 50))[0])
+    # print(player.get_hp_level())
+    # screen = player.clicker.screen
+    # screen[(screen[:, :, 2] > screen[:, :, 1]) & (screen[:, :, 2] - screen[:, :, 1] > 50)] = (0, 0, 255)
+    #
+    # shower.display(screen[:,:,::-1])
+    # continue
     # screen, offset = clicker.screen_lookup(player.radar_window)
     # coord = clicker.find_image(tunnel_img, threshold=player.tunnel_detection_precision, screen=screen, offset=offset, centers=True)
     # if coord:
     #     print(coord)
     #     screen[coord[1] - offset[1], coord[0] - offset[0]] = [0, 0, 255]
-    player.lookup_coords()
-    shower.display(clicker.screen[:,:,::-1])
-    continue
+    # player.lookup_coords()
+    # shower.display(clicker.screen[:,:,::-1])
+    # continue
     # print(player.set_speed_arm_value(-1))
     # print(player.set_low_speed())
     # start = time.time()
     # player.lookup_direction()
 
     # screen, offset = clicker.screen_lookup(window=(-225, 15, -40, 200))
-    screen, offset = clicker.screen_lookup(window=player.tech_window)
+    screen, offset = clicker.screen_lookup(window=player.radar_window)
 
     radar = screen
     # centers = np.array(find_template_on_image(radar, vortex_img, circle_mask=False, centers=True, threshold=.2, min_dist=None))
@@ -360,7 +399,7 @@ while True:
     dx = 47
     dy = 49
     (1360, 1067)
-    centers = np.array(find_template_on_image(radar, tech_slot_saw, circle_mask=False, centers=True, threshold=.4, min_dist=None))
+    centers = np.array(find_template_on_image(radar, meteostation_tg_img, circle_mask=False, centers=True, threshold=.5, min_dist=None))
     radar = radar[:, :, ::-1]
     if len(centers) > 0:
         radar[centers[:, 1], centers[:, 0]] = [255, 0, 0]

@@ -784,7 +784,7 @@ class Player:
 
     def locate_enemies(self):
         if not self.enemy_types:
-            return []
+            return [], None, None
         # start = time.time()
         screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         neutral_enemies = []
@@ -1696,7 +1696,9 @@ class Player:
                 self.log_error(f"Объект \"{attribute}\" не обнаружен на радаре!")
                 return False
             closest_coord = min(target_coord_list, key=lambda x: math.dist(x, self.center))
-            self.clicker.click(*closest_coord)
+            self.clicker.dblclick(*closest_coord)
+            time.sleep(0.01)
+            self.clicker.move(0, 0)
             return True
         elif action == 'Ожидать':
             time.sleep(attribute)
@@ -1738,13 +1740,15 @@ class Player:
         elif type(action) in [tuple, list]:
             return time.sleep(1)
 
-    def do_action(self, action, attribute, backup_action=None, backup_attribute=None, stop_at_route_point=False):
+    def do_action(self, action, attribute, backup_actions=None, backup_attributes=None, stop_at_route_point=False):
         while not self.act(action, attribute, stop_at_route_point=stop_at_route_point):
-            if backup_action is None:
+            if not backup_actions:
                 break
 
             self.act_delay(action)
-            self.act(backup_action, backup_attribute, stop_at_route_point=type(action) not in [tuple, list])
+            for backup_action, backup_attribute in zip(backup_actions, backup_attributes):
+                self.act(backup_action, backup_attribute, stop_at_route_point=type(action) not in [tuple, list])
+                self.act_delay(backup_action)
 
         self.act_delay(action)
 
@@ -1755,9 +1759,24 @@ class Player:
 
             action, attribute = route_point
             stop_at_route_point = type(route[index + 1][0]) not in [tuple, list] if index + 1 < len(route) else True
-            backup_action, backup_attribute = route[index - 1]
+
+            backup_actions = []
+            backup_attributes = []
+
+            for backup_action, backup_attribute in route[:index][::-1]:
+                backup_actions.append(backup_action)
+                backup_attributes.append(backup_attribute)
+                if backup_action != "Ожидать":
+                    break
+
+            backup_actions = backup_actions[::-1]
+            backup_attributes = backup_attributes[::-1]
+            if not backup_actions or backup_actions[0] == "Ожидать":
+                backup_actions = None
+                backup_attributes = None
+
             self.do_action(action=action, attribute=attribute,
-                           backup_action=backup_action, backup_attribute=backup_attribute,
+                           backup_actions=backup_actions, backup_attributes=backup_attributes,
                            stop_at_route_point=stop_at_route_point)
 
     def fly_route_point(self, route: list[((int, int), str)], index, stop_at_the_end=True):
@@ -1785,14 +1804,29 @@ class Player:
             stop_at_route_point = not is_next_root_point_coord
 
         # Определяем прошлое действие, чтобы повторить в случае неудачи текущего
-        if is_coord(route[index - 1]):
-            backup_action = route[index - 1]
-            backup_attribute = "Быстро лететь к цели"
-        else:
-            backup_action, backup_attribute = route[index]
+        backup_actions = []
+        backup_attributes = []
+
+        for route_point in (route[index:] + route[:index])[::-1]:
+            if is_coord(route_point):
+                backup_action = route_point
+                backup_attribute = "Быстро лететь к цели"
+            else:
+                backup_action, backup_attribute = route_point
+
+            backup_actions.append(backup_action)
+            backup_attributes.append(backup_attribute)
+            if backup_action != "Ожидать":
+                break
+
+        backup_actions = backup_actions[::-1]
+        backup_attributes = backup_attributes[::-1]
+        if not backup_actions or backup_actions[0] == "Ожидать":
+            backup_actions = None
+            backup_attributes = None
 
         self.do_action(action=action, attribute=attribute,
-                       backup_action=backup_action, backup_attribute=backup_attribute,
+                       backup_actions=backup_actions, backup_attributes=backup_attributes,
                        stop_at_route_point=stop_at_route_point)
 
     def load_preset(self, file_path):
