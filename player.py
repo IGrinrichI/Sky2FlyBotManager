@@ -2296,6 +2296,10 @@ class Player:
             # Обработка смерти
             if self.is_dead():
                 raise ValueError
+
+            if self.is_hp_below_required():
+                return True
+
             # Убиваем
             self.target_and_kill()
 
@@ -2338,6 +2342,13 @@ class Player:
             # Обработка смерти
             if self.is_dead():
                 raise ValueError
+
+            if self.is_hp_below_required():
+                screen, offset = self.clicker.screen_lookup()
+                catching_coord = self.clicker.find_image(catching_img, screen=screen, offset=offset)
+                if catching_coord:
+                    self.clicker.click(catching_coord[0] + 315, catching_coord[1])
+                return True
 
             try:
                 is_farm_not_ended = self.is_farming()
@@ -2448,7 +2459,7 @@ class Player:
             [52, 36],
         ]
 
-        farming = self.is_farming()
+        farming = self.is_farming() and not self.is_hp_below_required()
         while farming:
             for dandelion_coord in self.target_coords_range:
                 self.fly_to(*dandelion_coord, stop_at_destination=self.stop_at_destination, target_bias=self.target_bias,
@@ -2459,7 +2470,7 @@ class Player:
                     self.loot_dandelion()
 
                 # Заканчиваем цикл, если после сбора пушинки фарм окончен
-                farming = self.is_farming()
+                farming = self.is_farming() and not self.is_hp_below_required()
                 if not farming:
                     break
 
@@ -2517,7 +2528,7 @@ class Player:
                 raise ValueError
 
             try:
-                if not self.is_farming():
+                if not self.is_farming() or self.is_hp_below_required():
                     self.stop_spam_attack()
 
                     if self.do_looting:
