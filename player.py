@@ -335,6 +335,9 @@ class Player:
     vortex_detection_precision = .2
     vortex_approach_distance = 10
 
+    clean_ram_periodically = True
+    min_ram_to_clean = 300
+
     attribute_cross_naming_en_ru = {
         "mode": "режим работы",
         "next_preset": "следующий пресет",
@@ -483,6 +486,9 @@ class Player:
         
         "vortex_detection_precision": "точность определения вихря",
         "vortex_approach_distance": "дистанция приближения к вихрю",
+
+        "clean_ram_periodically": "включить периодическое очищение оперативной памяти процесса",
+        "min_ram_to_clean": "минимальное значение оперативной памяти для очистки",
 
         "locate_threshold": "точность определения объектов на радаре для взаимодействия",
         "locate_min_dist": "минимальное расстояние между обнаруживаемыми объектами на радаре для взаимодействия",
