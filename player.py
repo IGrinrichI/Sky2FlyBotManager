@@ -232,6 +232,7 @@ class Player:
     enemy_focusing_max_time = 1
     enemy_focused_at = 0
     enemy_kill_timeout = 10
+    boss_threshold = .8
 
     death_check_delay = 10
     death_check_last_time = 0
@@ -403,6 +404,7 @@ class Player:
         "enemy_focusing_max_time": "максимальное время на захват/поиск цели",
         # "enemy_focused_at": "",
         "enemy_kill_timeout": "максимальное время на убийство цели",
+        "boss_threshold": "точность определения боссов",
         
         "death_check_delay": "задержка между проверками подбит ли корабль",
         # "death_check_last_time": "",
@@ -822,7 +824,7 @@ class Player:
         bosses = []
         if 'boss' in self.enemy_types:
             screen, offset = self.clicker.screen_lookup(window=self.radar_window)
-            bosses = self.clicker.find_images(boss, min_dist=10, threshold=.8, centers=True, screen=screen, offset=offset)
+            bosses = self.clicker.find_images(boss, min_dist=10, threshold=self.boss_threshold, centers=True, screen=screen, offset=offset)
 
         enemies = neutral_enemies + aggressive_enemies + special_enemies + bosses
 
