@@ -198,6 +198,9 @@ class Player:
 
     farm_start_time = time.time()
     max_farm_time = 300
+    min_hp_level = -1
+    hp_check_delay = 5
+    last_hp_check_time = 0
     delay_between_farm_attempts = 0.3
 
     abilities = []
@@ -354,6 +357,8 @@ class Player:
         
         # "farm_start_time": "",
         "max_farm_time": "максимальное время фарма",
+        "min_hp_level": "минимальный уровень хп",
+        "hp_check_delay": "частота проверки уровня хп",
         "delay_between_farm_attempts": "задержка между циклами процесса фарма",
         
         "abilities": "способности для активации",
@@ -1693,6 +1698,30 @@ class Player:
                 return x, y
 
         return None
+
+    def get_hp_level(self):
+        top = -117
+        bottom = -65
+        height = abs(top - bottom)
+        screen, offset = self.clicker.screen_lookup((-170, top, -168, bottom))
+        bar_indices = np.argwhere((screen[:, :, 2] > screen[:, :, 1]) & (screen[:, :, 2] - screen[:, :, 1] > 50))
+        if len(bar_indices) > 0:
+            return 100 * (height - bar_indices[0][0]) / height
+        return 0
+
+    def is_hp_below_required(self):
+        if self.min_hp_level <= 0:
+            return False
+
+        current_time = time.time()
+        if current_time - self.last_hp_check_time < self.hp_check_delay:
+            return False
+
+        self.last_hp_check_time = current_time
+
+        if self.get_hp_level() < self.min_hp_level:
+            self.log_error("Уровень хп упал ниже ожидаемого!")
+            return True
 
     def is_dead(self, do_wait=True):
         current_time = time.time()
