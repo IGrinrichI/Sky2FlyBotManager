@@ -2387,7 +2387,7 @@ class Player:
                         self.clicker.click(*continue_click_coord)
                         last_continue_click_coord = continue_click_coord
                 else:
-                    catching_coord = self.clicker.find_image(catching_img, catching_window_coord, screen=screen, offset=offset)
+                    catching_coord = self.clicker.find_image(catching_img, window=catching_window_coord, screen=screen, offset=offset)
                     # Возможно было перемещено пользователем
                     if catching_coord is None:
                         catching_coord = self.clicker.find_image(catching_img, screen=screen, offset=offset)
