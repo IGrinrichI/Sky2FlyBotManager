@@ -1,7 +1,8 @@
+import cv2
 import numpy as np
 from PIL import Image
 
-def replace_color_with_transparent_numpy(image_path, target_color_rgb):
+def replace_color_with_transparent_numpy(image_path, target_color_rgb, fill_gaps=True):
     # Open image and convert to RGBA
     img = Image.open(image_path).convert('RGBA')
     # Convert image to NumPy array
@@ -16,15 +17,30 @@ def replace_color_with_transparent_numpy(image_path, target_color_rgb):
     # .all(axis=-1) checks if all channels (R, G, B, A) match
     mask = (np.abs(img_data - target_color) < 25).all(axis=-1)
 
-    # Replace the matching pixels with the transparent color
-    img_data[mask] = transparent_color
+    if not fill_gaps:
+        # Replace the matching pixels with the transparent color
+        img_data[mask] = transparent_color
+    else:
+        mask_to_fill = np.zeros((*img_data.shape[:-1], 1))
+        mask_to_fill[~mask] = 255
+        # mask_to_fill[30:40, 20:30] = 255
+        # Создаем ядро (структурный элемент)
+        # Чем больше размер (5,5), тем более крупные дырки будут закрыты
+        kernel = np.ones((2, 2), np.uint8)
 
-    # Convert the NumPy array back to a Pillow Image and save
+        # Применяем операцию закрытия
+        result = cv2.morphologyEx(mask_to_fill, cv2.MORPH_CLOSE, kernel)
+        img_data[result == 0] = transparent_color
+        # cv2.imwrite(image_path.split('.')[0] + '_.png', img_data)
+
     final_image = Image.fromarray(img_data, mode='RGBA')
     final_image.save(image_path, "PNG")#.split('.')[0] + "_transparent.png", "PNG")
     print(f"Image saved as {image_path} with color {target_color_rgb} made transparent.")
 
 # Example usage:
 # Replace the color black (0, 0, 0) with transparent
-# replace_color_with_transparent_numpy(r"images\tech_slot_saw.png", (255, 238, 191))
-replace_color_with_transparent_numpy(r"images\tech_slot_auto_use.png", (255, 0, 0))
+image_path = r"images\meteostation_tg.png"
+replace_color_with_transparent_numpy(image_path, (236, 235, 174))
+# replace_color_with_transparent_numpy(image_path, (255, 238, 191))
+# replace_color_with_transparent_numpy(image_path, (234, 216, 149))
+# replace_color_with_transparent_numpy(image_path, (255, 0, 0))
