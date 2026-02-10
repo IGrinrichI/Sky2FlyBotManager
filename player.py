@@ -267,6 +267,11 @@ class Player:
     radar_window = (-225, 15, -40, 200)
     action_window = (-70, 360, -1, -1)
     action_detection_precision = .8
+    check_ability_to_quit = False
+    check_quit_interval = 3
+    quit_delay = 2
+    last_time_quit_check = 0
+    quit_found_count = 0
     tech_window = (-600, -100, -265, -1)
     tech_detection_precision = .4
 
@@ -434,6 +439,10 @@ class Player:
         "action_detection_precision": "точность определения действий",
         # "tech_window": "",
         "tech_detection_precision": "точность определения техов",
+
+        "check_ability_to_quit": "проверять возможность выхода из сценария",
+        "check_quit_interval": "частота проверки возможности выхода из сценария",
+        "quit_delay": "задержка выхода из сценария",
         
         # "storage_filters_window": "",
         # "city_services_window": "",
@@ -1395,6 +1404,10 @@ class Player:
                 self.stop_rotation()
                 raise ValueError
 
+            if self.is_quit_available(only_check=True):
+                self.stop_rotation()
+                return True
+
             self.clicker.keypress(self.force_key if speed_up else self.forward_key)
             if loot:
                 self.loot()
@@ -1778,6 +1791,39 @@ class Player:
                 if do_wait:
                     time.sleep(random.randint(*self.after_death_wait_time_range))
                 return True
+        return False
+
+    def is_quit_available(self, only_check=False):
+        if not self.check_ability_to_quit:
+            return False
+
+        if time.time() - self.last_time_quit_check < self.check_quit_interval:
+            return False
+
+        self.last_time_quit_check = time.time()
+        quit_coord = self.find_action(fly_in_button)
+        if quit_coord:
+            self.log_message("Доступен вылет из сценария.")
+            if self.quit_found_count * self.check_quit_interval < self.quit_delay:
+                self.quit_found_count += 1
+                return False
+
+            if only_check:
+                self.last_time_quit_check = self.last_time_quit_check - self.check_quit_interval
+            else:
+                self.log_message("Вылет из сценария.")
+                while quit_coord:
+                    self.clicker.click(*quit_coord)
+                    if self.wait_for_warp(3):
+                        return True
+
+                    if self.is_dead():
+                        raise ValueError
+
+                    quit_coord = self.find_action(fly_in_button)
+            return True
+
+        self.quit_found_count = 0
         return False
 
     def open_ship(self):
