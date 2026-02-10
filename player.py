@@ -2306,6 +2306,9 @@ class Player:
             time.sleep(.01)
             self.loot()  # Лутаем
 
+            if not self.in_combat and self.is_quit_available():
+                return True
+
             # Летим к следующей точке, если мобы кончились, или мы улетели за границу зоны
             if not self.in_combat or not self.in_area():
                 self.loot()  # На всякий случай лутаем ещё
