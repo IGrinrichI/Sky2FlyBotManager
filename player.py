@@ -152,6 +152,12 @@ exit_button = cv2.imread(resource_path(os.path.join('images', 'exit_button.bmp')
 # Иконка босса
 boss = cv2.imread(resource_path(os.path.join('images', 'boss.png')))
 
+# Объекты в небе
+flyagers_img = cv2.imread(resource_path(os.path.join('images', 'flyagers.PNG')), cv2.IMREAD_UNCHANGED)
+mushroom_man_img = cv2.imread(resource_path(os.path.join('images', 'mushroom_man.PNG')), cv2.IMREAD_UNCHANGED)
+delyanka_fire_tg_img = cv2.imread(resource_path(os.path.join('images', 'delyanka_fire_tg.PNG')), cv2.IMREAD_UNCHANGED)
+meteostation_tg_img = cv2.imread(resource_path(os.path.join('images', 'meteostation_tg.PNG')), cv2.IMREAD_UNCHANGED)
+
 
 class Player:
     mode = 'Убийство мобов в зоне'
@@ -294,6 +300,19 @@ class Player:
     _ocr_reader = None
 
     positioning_to_the_center = False
+
+    locate_threshold = .85
+    locate_min_dist = 10
+
+    approach_threshold = .85
+    approach_distance = 0
+    approach_stop_distance_diff = 2
+    available_objects_to_approach = {
+        "флягеры": flyagers_img,
+        "грибник": mushroom_man_img,
+        "делянка пожар тг": delyanka_fire_tg_img,
+        "метеостанция тг": meteostation_tg_img,
+    }
 
     tunnel_detection_precision = .7
     tunnel_approach_distance = 10
@@ -460,6 +479,13 @@ class Player:
         
         "vortex_detection_precision": "точность определения вихря",
         "vortex_approach_distance": "дистанция приближения к вихрю",
+
+        "locate_threshold": "точность определения объектов на радаре для взаимодействия",
+        "locate_min_dist": "минимальное расстояние между обнаруживаемыми объектами на радаре для взаимодействия",
+
+        "approach_threshold": "точность определения объектов на радаре для приближения",
+        "approach_distance": "дистанция приближения к объекту на радаре",
+        "approach_stop_distance_diff": "отклонение от приближения от объектов на радаре для остановки",
     }
     attribute_cross_naming_ru_en = {value: key for key, value in attribute_cross_naming_en_ru.items()}
 
@@ -1810,7 +1836,9 @@ class Player:
                 screen, offset = self.clicker.screen_lookup()
                 chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
 
-    def locate(self, image, threshold=.85, min_dist=10):
+    def locate(self, image, threshold=None, min_dist=None):
+        threshold = threshold if threshold is not None else self.locate_threshold
+        min_dist = min_dist if min_dist is not None else self.locate_min_dist
         screen, offset = self.clicker.screen_lookup(window=self.radar_window)
         coords = self.clicker.find_images(image, threshold=threshold, centers=True, min_dist=min_dist, screen=screen, offset=offset)
         return coords
@@ -1884,8 +1912,11 @@ class Player:
     def set_low_speed(self):
         return self.set_speed_arm_value(0.28)
 
-    def approach(self, image, threshold=.85, distance=0,
-                 stop_action_image=None, very_slow=False, correct_rotation=True, stop_distance_diff=2):
+    def approach(self, image, threshold=None, distance=None,
+                 stop_action_image=None, very_slow=False, correct_rotation=True, stop_distance_diff=None):
+        distance = distance if distance is not None else self.approach_distance
+        threshold = threshold if threshold is not None else self.approach_threshold
+        stop_distance_diff = stop_distance_diff if stop_distance_diff is not None else self.approach_stop_distance_diff
         coords = self.locate(image=image, threshold=threshold)
         if not coords:
             self.log_error('Объект не найден!')
