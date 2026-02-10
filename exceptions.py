@@ -1,0 +1,2 @@
+class StopFarmException(Exception):
+    pass

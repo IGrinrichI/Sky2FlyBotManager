@@ -13,6 +13,8 @@ import win32con
 import win32ui
 import winsound
 
+from exceptions import StopFarmException
+
 
 def resource_path(relative_path) -> str:
     try:

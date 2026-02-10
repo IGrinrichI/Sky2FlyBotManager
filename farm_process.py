@@ -8,6 +8,7 @@ from threading import Thread
 import math
 import winsound
 from clicker import Clicker
+from exceptions import StopFarmException
 from player import Player
 import win32con
 
@@ -48,54 +49,58 @@ def farm_process(hwnd, preset, trial_time, child_conn):
     player.calc_edges()
 
     while True:
-        undock_with_overweight = False
-        player.loot_on_fly = player.do_looting
-        clicker.reset_keyboard()
-        # Если запустили с места фарма, то незачем лететь
         try:
-            player.lookup_coords()
-        except ValueError:
-            if player.check_state_in_city_before_farm:
-                player.in_city_actions()
-
+            undock_with_overweight = False
+            player.loot_on_fly = player.do_looting
+            clicker.reset_keyboard()
+            # Если запустили с места фарма, то незачем лететь
             try:
-                player.fly_route(player.to_farm_path)
+                player.lookup_coords()
             except ValueError:
-                continue
+                if player.check_state_in_city_before_farm:
+                    player.in_city_actions()
 
-        if player.is_overweight():
-            print(datetime.datetime.now(), 'Вылет с перегрузом.')
-            undock_with_overweight = True
-        else:
-            time.sleep(1)
-            # Отдаляем радар
-            player.scale_out_radar()
-            # Активируем умения
-            player.activate_abilities()
-
-        # clicker.reset_keyboard()
-        try:
-            # Процесс фарма
-            player.farm()
+                try:
+                    player.fly_route(player.to_farm_path)
+                except ValueError:
+                    continue
 
             if player.is_overweight():
-                print(datetime.datetime.now(), 'Перегруз')
-            print(datetime.datetime.now(), 'Фарм окончен, летим в город.')
-            # Летим в центр (город)
-            player.loot_on_fly = False
-            if undock_with_overweight:
-                player.fly_route([player.to_base_path[-1]])
+                print(datetime.datetime.now(), 'Вылет с перегрузом.')
+                undock_with_overweight = True
             else:
-                # Выкидываем сундуки
-                if player.do_drop_chests:
-                    player.drop_chests()
-                player.fly_route(player.to_base_path)
-        except ValueError:
+                time.sleep(1)
+                # Отдаляем радар
+                player.scale_out_radar()
+                # Активируем умения
+                player.activate_abilities()
+
+            # clicker.reset_keyboard()
+            try:
+                # Процесс фарма
+                player.farm()
+
+                if player.is_overweight():
+                    print(datetime.datetime.now(), 'Перегруз')
+                print(datetime.datetime.now(), 'Фарм окончен, летим в город.')
+                # Летим в центр (город)
+                player.loot_on_fly = False
+                if undock_with_overweight:
+                    player.fly_route([player.to_base_path[-1]])
+                else:
+                    # Выкидываем сундуки
+                    if player.do_drop_chests:
+                        player.drop_chests()
+                    player.fly_route(player.to_base_path)
+            except ValueError:
+                pass
+
+            print(datetime.datetime.now(), 'В городе')
+
+            player.in_city_actions()
+        except StopFarmException:
+            player.log_error("Фарм будет окончен!")
             pass
-
-        print(datetime.datetime.now(), 'В городе')
-
-        player.in_city_actions()
 
         if (not player.repeat_cycle_forever and not player.next_preset) or trial_time <= time.time():
             beep(1000, sync=True)
