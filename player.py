@@ -1655,75 +1655,145 @@ class Player:
 
         return result
 
+    def act(self, action, attribute, stop_at_route_point=False):
+        if action == 'Вылет':
+            return self.undock(available_directions_to_undock=attribute)
+        elif action == 'Перелететь':
+            return self.fly_from_base_to(destination_name=attribute)
+        elif action == 'В туннель':
+            return self.fly_from_tunnel_to(destination_name=attribute)
+        elif action == 'В тоннель':
+            return self.fly_from_tunnel_to(destination_name=attribute)
+        elif action == 'Ожидание перелета':
+            return self.wait_for_warp()
+        elif action == 'Пригласить в пати':
+            return self.invite_to_party(attribute)
+        elif action == 'Ожидание пати':
+            return self.wait_for_party_request()
+        elif action == 'Принять пати':
+            return self.accept_party_request()
+        elif action == 'Суицид':
+            return self.suicide()
+        elif action == 'Начать диалог':
+            return self.start_dialog()
+        elif action == 'Выбрать опцию диалога':
+            return self.select_dialog_option(*attribute if type(attribute) in [tuple, list] else [attribute])
+        elif action == 'Пролететь через вихрь':
+            return self.fly_through_vortex()
+        elif action == 'Подлететь':
+            target_image = self.available_objects_to_approach.get(attribute.lower(), None)
+            if target_image is None:
+                self.log_error(f"Объект \"{attribute}\" недоступен для приближения, обратитесь к разработчику!")
+                raise StopFarmException
+            return self.approach(target_image)
+        elif action == 'Взаимодействовать с объектом':
+            target_image = self.available_objects_to_approach.get(attribute.lower(), None)
+            if target_image is None:
+                self.log_error(f"Объект \"{attribute}\" недоступен для взаимодействия, обратитесь к разработчику!")
+                raise StopFarmException
+            target_coord_list = self.locate(target_image)
+            if not target_coord_list:
+                self.log_error(f"Объект \"{attribute}\" не обнаружен на радаре!")
+                return False
+            closest_coord = min(target_coord_list, key=lambda x: math.dist(x, self.center))
+            self.clicker.click(*closest_coord)
+            return True
+        elif action == 'Ожидать':
+            time.sleep(attribute)
+            return True
+        elif type(action) in [tuple, list]:
+            return self.fly_to(*action, mode=attribute, stop_at_destination=stop_at_route_point)
+
+    def act_delay(self, action):
+        if action == 'Вылет':
+            return time.sleep(5)
+        elif action == 'Перелететь':
+            return time.sleep(3)
+        elif action == 'В туннель':
+            return time.sleep(15)
+        elif action == 'В тоннель':
+            return time.sleep(15)
+        elif action == 'Ожидание перелета':
+            return time.sleep(1)
+        elif action == 'Пригласить в пати':
+            return time.sleep(1)
+        elif action == 'Ожидание пати':
+            return time.sleep(1)
+        elif action == 'Принять пати':
+            return time.sleep(1)
+        elif action == 'Суицид':
+            return time.sleep(1)
+        elif action == 'Начать диалог':
+            return time.sleep(1)
+        elif action == 'Выбрать опцию диалога':
+            return time.sleep(1)
+        elif action == 'Пролететь через вихрь':
+            return time.sleep(5)
+        elif action == 'Подлететь':
+            return time.sleep(1)
+        elif action == 'Взаимодействовать с объектом':
+            return time.sleep(1)
+        elif action == 'Ожидать':
+            return None
+        elif type(action) in [tuple, list]:
+            return time.sleep(1)
+
+    def do_action(self, action, attribute, backup_action=None, backup_attribute=None, stop_at_route_point=False):
+        while not self.act(action, attribute, stop_at_route_point=stop_at_route_point):
+            if backup_action is None:
+                break
+
+            self.act_delay(action)
+            self.act(backup_action, backup_attribute, stop_at_route_point=type(action) not in [tuple, list])
+
+        self.act_delay(action)
+
     def fly_route(self, route: list[((int, int), str)]):
-        def act(action, attribute, stop_at_route_point=False):
-            if action == 'Вылет':
-                return self.undock(available_directions_to_undock=attribute)
-            elif action == 'Перелететь':
-                return self.fly_from_base_to(destination_name=attribute)
-            elif action == 'В туннель':
-                return self.fly_from_tunnel_to(destination_name=attribute)
-            elif action == 'В тоннель':
-                return self.fly_from_tunnel_to(destination_name=attribute)
-            elif action == 'Ожидание перелета':
-                return self.wait_for_warp()
-            elif action == 'Пригласить в пати':
-                return self.invite_to_party(attribute)
-            elif action == 'Ожидание пати':
-                return self.wait_for_party_request()
-            elif action == 'Принять пати':
-                return self.accept_party_request()
-            elif action == 'Суицид':
-                return self.suicide()
-            elif action == 'Начать диалог':
-                return self.start_dialog()
-            elif action == 'Выбрать опцию диалога':
-                return self.select_dialog_option(*attribute if type(attribute) in [tuple, list] else [attribute])
-            elif action == 'Пролететь через вихрь':
-                return self.fly_through_vortex()
-            elif type(action) in [tuple, list]:
-                return self.fly_to(*action, mode=attribute, stop_at_destination=stop_at_route_point)
-
-        def delay(action):
-            if action == 'Вылет':
-                return time.sleep(5)
-            elif action == 'Перелететь':
-                return time.sleep(3)
-            elif action == 'В туннель':
-                return time.sleep(15)
-            elif action == 'В тоннель':
-                return time.sleep(15)
-            elif action == 'Ожидание перелета':
-                return time.sleep(1)
-            elif action == 'Пригласить в пати':
-                return time.sleep(1)
-            elif action == 'Ожидание пати':
-                return time.sleep(1)
-            elif action == 'Принять пати':
-                return time.sleep(1)
-            elif action == 'Суицид':
-                return time.sleep(1)
-            elif action == 'Начать диалог':
-                return time.sleep(1)
-            elif action == 'Выбрать опцию диалога':
-                return time.sleep(1)
-            elif action == 'Пролететь через вихрь':
-                return time.sleep(5)
-            elif type(action) in [tuple, list]:
-                return time.sleep(1)
-
         for index, route_point in enumerate(route):
             if self.is_dead():
                 raise ValueError
 
             action, attribute = route_point
-            stop_at_route_point = type(route[index + 1]) not in [tuple, list] if index + 1 < len(route) else True
-            while not act(action, attribute, stop_at_route_point=stop_at_route_point):
-                delay(action)
-                backup_action, backup_attribute = route[index - 1]
-                act(backup_action, backup_attribute, stop_at_route_point=type(action) not in [tuple, list])
+            stop_at_route_point = type(route[index + 1][0]) not in [tuple, list] if index + 1 < len(route) else True
+            backup_action, backup_attribute = route[index - 1]
+            self.do_action(action=action, attribute=attribute,
+                           backup_action=backup_action, backup_attribute=backup_attribute,
+                           stop_at_route_point=stop_at_route_point)
 
-            delay(action)
+    def fly_route_point(self, route: list[((int, int), str)], index, stop_at_the_end=True):
+        if self.is_dead():
+            raise ValueError
+
+        is_coord = lambda x: type(x) in [list, tuple] and len(x) == 2 and all(type(c) is int for c in x)
+        # Определяем текущее действие
+        if is_coord(route[index]):
+            action = route[index]
+            attribute = "Быстро лететь к цели"
+        else:
+            action, attribute = route[index]
+
+        # Останавливаться ли (в небе) после достижения данного действия
+        if stop_at_the_end:
+            if index + 1 < len(route):
+                is_next_root_point_coord = is_coord(route[index + 1]) or is_coord(route[index + 1][0])
+                stop_at_route_point = not is_next_root_point_coord
+            else:
+                stop_at_route_point = stop_at_the_end
+        else:
+            next_index = index + 1 if index + 1 < len(route) else 0
+            is_next_root_point_coord = is_coord(route[next_index]) or is_coord(route[next_index][0])
+            stop_at_route_point = not is_next_root_point_coord
+
+        # Определяем прошлое действие, чтобы повторить в случае неудачи текущего
+        if is_coord(route[index - 1]):
+            backup_action = route[index - 1]
+            backup_attribute = "Быстро лететь к цели"
+        else:
+            backup_action, backup_attribute = route[index]
+
+        self.do_action(action=action, attribute=attribute,
+                       backup_action=backup_action, backup_attribute=backup_attribute,
+                       stop_at_route_point=stop_at_route_point)
 
     def load_preset(self, file_path):
         with open(file_path, 'r', encoding='utf8') as f:
@@ -2292,6 +2362,13 @@ class Player:
     def fly_in_zone_and_kill_mobs(self):
         self.in_combat = True
         last_closest_target = None
+        route_index = 0
+        route_points = self.target_coords_range
+
+        is_coord = lambda x: type(x) in [list, tuple] and len(x) == 2 and all(type(c) is int for c in x)
+
+        stick_to_closest = all(is_coord(point) for point in route_points)
+
         while self.is_farming():
             # Обработка смерти
             if self.is_dead():
@@ -2312,17 +2389,22 @@ class Player:
             # Летим к следующей точке, если мобы кончились, или мы улетели за границу зоны
             if not self.in_combat or not self.in_area():
                 self.loot()  # На всякий случай лутаем ещё
-                closest_target = min(self.target_coords_range,
-                                     key=lambda coords: math.dist(coords, self.radar_coords))
-                # Чтобы не возвращаться в ту же самую точку каждый раз - меняем точку на следующую
-                # если ближайшая точка посещалась в прошлый раз как отсутствовали цели.
-                if closest_target == last_closest_target:
-                    next_target_index = self.target_coords_range.index(closest_target) + 1
-                    next_target_index = next_target_index if next_target_index < len(self.target_coords_range) else 0
-                    closest_target = self.target_coords_range[next_target_index]
 
-                if self.fly_to(*closest_target):
-                    last_closest_target = closest_target
+                if stick_to_closest:
+                    closest_target = min(route_points, key=lambda coords: math.dist(coords, self.radar_coords))
+                    # Чтобы не возвращаться в ту же самую точку каждый раз - меняем точку на следующую
+                    # если ближайшая точка посещалась в прошлый раз как отсутствовали цели.
+                    if closest_target == last_closest_target:
+                        route_index = route_points.index(closest_target) + 1
+                        route_index = route_index if route_index < len(route_points) else 0
+                        closest_target = route_points[route_index]
+
+                    if self.fly_to(*closest_target):
+                        last_closest_target = closest_target
+                else:
+                    self.fly_route_point(route=route_points, index=route_index, stop_at_the_end=False)
+                    route_index = route_index + 1 if route_index + 1 < len(route_points) else 0
+
                 self.in_combat = True
             else:
                 time.sleep(self.delay_between_farm_attempts)
