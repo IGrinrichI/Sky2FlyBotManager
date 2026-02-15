@@ -51,8 +51,9 @@ class MainView(BoxLayout):
         try:
             yandex_modify_datetime_utc = datetime.fromisoformat(get_yandex_disk_file_date(public_link)).replace(
                 tzinfo=timezone.utc)
-        except ValueError:
+        except Exception:
             return False
+
         # print(f"Дата изменения на диске: {yandex_modify_datetime_utc}")
         # local_time_zone = datetime.now(timezone.utc).astimezone().tzinfo
         real_modify_datetime_utc = datetime.fromtimestamp(os.path.getmtime(sys.executable), tz=timezone.utc)
