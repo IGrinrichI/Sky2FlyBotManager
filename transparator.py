@@ -21,16 +21,20 @@ def replace_color_with_transparent_numpy(image_path, target_color_rgb, fill_gaps
         # Replace the matching pixels with the transparent color
         img_data[mask] = transparent_color
     else:
-        mask_to_fill = np.zeros((*img_data.shape[:-1], 1))
-        mask_to_fill[~mask] = 255
+        mask_to_fill_l = np.zeros((*img_data.shape[:-1], 1))
+        mask_to_fill_r = np.zeros((*img_data.shape[:-1], 1))
+        mask_to_fill_l[~(mask[:, ::-1])] = 255
+        mask_to_fill_r[~mask] = 255
         # mask_to_fill[30:40, 20:30] = 255
         # Создаем ядро (структурный элемент)
         # Чем больше размер (5,5), тем более крупные дырки будут закрыты
         kernel = np.ones((2, 2), np.uint8)
 
         # Применяем операцию закрытия
-        result = cv2.morphologyEx(mask_to_fill, cv2.MORPH_CLOSE, kernel)
-        img_data[result == 0] = transparent_color
+        result_l = cv2.morphologyEx(mask_to_fill_l, cv2.MORPH_CLOSE, kernel)
+        result_r = cv2.morphologyEx(mask_to_fill_r, cv2.MORPH_CLOSE, kernel)
+        result_r[(result_l[:, ::-1]) == 0] = 0
+        img_data[result_r == 0] = transparent_color
         # cv2.imwrite(image_path.split('.')[0] + '_.png', img_data)
 
     final_image = Image.fromarray(img_data, mode='RGBA')
@@ -39,7 +43,7 @@ def replace_color_with_transparent_numpy(image_path, target_color_rgb, fill_gaps
 
 # Example usage:
 # Replace the color black (0, 0, 0) with transparent
-image_path = r"images\meteostation_tg.png"
+image_path = r"images\tunnel_alt.png"
 replace_color_with_transparent_numpy(image_path, (236, 235, 174))
 # replace_color_with_transparent_numpy(image_path, (255, 238, 191))
 # replace_color_with_transparent_numpy(image_path, (234, 216, 149))
