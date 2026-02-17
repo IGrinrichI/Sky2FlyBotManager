@@ -3144,9 +3144,8 @@ class Player:
         not_broken_saw_coord = self.find_equipped_slot(not_broken_saw_big_image, screen=screen, offset=offset)
         if broken_saw_coord is None and not_broken_saw_coord is None:
             self.log_error("Дровосек не экипирован, фарм будет завершен!")
-            self.repeat_cycle_forever = False
             self.close_all_windows()
-            return False
+            raise StopFarmException
 
         # Если дровосек уже экипирован, то пропускаем экипировку
         saw_equipped_successful = bool(not_broken_saw_coord)
@@ -3173,8 +3172,7 @@ class Player:
                                         amount=self.additional_saw_amount + 1,
                                         wait_shop=True):
                     self.log_error("Фарм будет завершен!")
-                    self.repeat_cycle_forever = False
-                    return False
+                    raise StopFarmException
 
                 time.sleep(1)
 
@@ -3206,8 +3204,7 @@ class Player:
 
         if not saw_equipped_successful:
             self.log_error("Не удалось экипировать дровосек, фарм будет завершен!")
-            self.repeat_cycle_forever = False
-            return False
+            raise StopFarmException
 
         # Далее работа со складом
         self.open_storage()
@@ -3287,8 +3284,7 @@ class Player:
                                         amount=self.additional_saw_amount - in_cargo_saw_count,
                                         wait_shop=True):
                     self.log_error("Фарм будет завершен!")
-                    self.repeat_cycle_forever = False
-                    return False
+                    raise StopFarmException
 
                 time.sleep(1)
 
@@ -3310,9 +3306,8 @@ class Player:
                 for i in range(in_cargo_saw_count, self.additional_saw_amount):
                     if not_broken_saw_storage_coord is None:
                         self.log_error(f"Не найдено {self.additional_saw_amount - i} дровосеков для перекладывания в трюм, фарм будет завершен!")
-                        self.repeat_cycle_forever = False
                         self.exit()
-                        return False
+                        raise StopFarmException
 
                     self.clicker.drag_and_drop(*not_broken_saw_storage_coord,
                                                not_broken_saw_storage_coord[0] - 100, not_broken_saw_storage_coord[1])

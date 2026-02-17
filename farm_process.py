@@ -101,7 +101,7 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                 player.in_city_actions()
             except StopFarmException:
                 player.log_error("Фарм будет окончен!")
-                pass
+                player.repeat_cycle_forever = False
 
             if (not player.repeat_cycle_forever and not player.next_preset) or trial_time <= time.time():
                 beep(1000, sync=True)
