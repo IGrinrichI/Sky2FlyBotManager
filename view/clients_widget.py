@@ -1,3 +1,4 @@
+from multiprocessing import Lock
 import os
 import sys
 import time
@@ -35,6 +36,8 @@ class ClientButton(BoxLayout):
         self.size_hint_y = None
         self.height = height
         self.hwnd = hwnd
+        self.screen_lookup_lock = Lock()
+        self.paused = False
         self.miniature = None
         self.process = None
         self.stdout = None
@@ -114,23 +117,31 @@ class ClientButton(BoxLayout):
         self.update_miniature()
 
     def update_miniature(self):
-        total_offset = 1
-        image = CaptureWindow(hwnd=self.hwnd, to_rgb=False, window=(total_offset, total_offset, 40, 40))
-        if all(image[2, 2] != [143, 147, 153]):
-            offset_color = [119, 104, 83]
-            offset_x = 0
-            for offset_x in range(40):
-                if all(image[0, offset_x] != offset_color):
-                    break
-            total_offset = 8
-            image = CaptureWindow(hwnd=self.hwnd, to_rgb=False,
-                                  window=(offset_x + total_offset, total_offset, 72 + offset_x, 72))
-        image = cv2.resize(image, (self.height, self.height))
-        w, h, _ = image.shape
-        texture = Texture.create(size=(w, h))
-        texture.blit_buffer(np.flipud(image).flatten(), colorfmt='bgr', bufferfmt='ubyte')
-        self.miniature.clear_widgets()
-        self.miniature.add_widget(Image(size_hint=(None, None), size=(w, h), texture=texture))
+        if self.paused:
+            return
+
+        try:
+            total_offset = 1
+            image = CaptureWindow(hwnd=self.hwnd, to_rgb=False, window=(total_offset, total_offset, 40, 40),
+                                  lock=self.screen_lookup_lock)
+            if all(image[2, 2] != [143, 147, 153]):
+                offset_color = [119, 104, 83]
+                offset_x = 0
+                for offset_x in range(40):
+                    if all(image[0, offset_x] != offset_color):
+                        break
+                total_offset = 8
+                image = CaptureWindow(hwnd=self.hwnd, to_rgb=False,
+                                      window=(offset_x + total_offset, total_offset, 72 + offset_x, 72),
+                                      lock=self.screen_lookup_lock)
+            image = cv2.resize(image, (self.height, self.height))
+            w, h, _ = image.shape
+            texture = Texture.create(size=(w, h))
+            texture.blit_buffer(np.flipud(image).flatten(), colorfmt='bgr', bufferfmt='ubyte')
+            self.miniature.clear_widgets()
+            self.miniature.add_widget(Image(size_hint=(None, None), size=(w, h), texture=texture))
+        except ValueError:
+            pass
 
     def start_event(self, *args, **kwargs):
         app = App.get_running_app().root
@@ -156,7 +167,8 @@ class ClientButton(BoxLayout):
             else:
                 preset = os.path.join('presets', selected_preset.text + '.preset')
 
-            process, stdout = get_farm_process(hwnd=self.hwnd, preset=preset, trial_time=trial_time)
+            process, stdout = get_farm_process(hwnd=self.hwnd, preset=preset, trial_time=trial_time,
+                                               screen_lookup_lock=self.screen_lookup_lock)
             process.start()
             self.process = process
             self.stdout = stdout
@@ -170,8 +182,20 @@ class ClientButton(BoxLayout):
 
     def stop_event(self, *args, **kwargs):
         if self.process is not None:
-            self.process.terminate()
+            process = self.process
             self.process = None
+
+            self.paused = True
+            process.terminate()
+
+            while process.is_alive():
+                time.sleep(.01)
+
+            try:
+                self.screen_lookup_lock.release()
+            except ValueError:
+                pass
+
             try:
                 while self.stdout.poll():
                     self.log_text = self.log_text + self.stdout.recv()
@@ -184,9 +208,11 @@ class ClientButton(BoxLayout):
             self.layout.add_widget(self.start_button)
             self.layout.add_widget(self.stop_button)
             self.layout.add_widget(self.log_button)
+            self.paused = False
 
     def pause_event(self, *args, **kwargs):
         if self.process is not None:
+            self.paused = True
             psutil.Process(self.process.pid).suspend()
 
             self.layout.clear_widgets()
@@ -198,6 +224,7 @@ class ClientButton(BoxLayout):
     def resume_event(self, *args, **kwargs):
         if self.process is not None:
             psutil.Process(self.process.pid).resume()
+            self.paused = False
 
             self.layout.clear_widgets()
             self.layout.add_widget(self.miniature)
