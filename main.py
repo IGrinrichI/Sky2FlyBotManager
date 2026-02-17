@@ -6,6 +6,7 @@ import time
 import numpy as np
 
 from licence import get_trial_time
+from ram_cleaner import clear_process_ram, start_ram_cleaner
 
 if getattr(sys, 'frozen', False):
     if not os.path.exists('key'):
@@ -82,13 +83,28 @@ def find_windows(window_name=None, window_class=None):
     return result
 
 
+
 clicker = Clicker(retry_color=np.array([118, 105, 86], dtype=np.uint8))
 # clicker.hwnd = 0x3006E
 clicker.hwnd = get_s2f_hwnds()[0]
 player = Player(clicker=clicker)
-autofire = False
+autofire = True
 quest = False
 
+
+
+
+# player.clicker.screen_lookup()
+# player.fly_from_tunnel_to("База клана")
+# player.fly_from_base_to('На платформу Фейра-ди-Сантана')
+# player.fly_from_base_to('На платформу "Пелотас"')
+# time.sleep(1)
+# player.fly_from_base_to('На платформу "Фернанда"')
+# time.sleep(1)
+# player.fly_from_base_to('На платформу Фейра-ди-Сантана')
+# time.sleep(1)
+# player.fly_from_base_to('В Лагуну')
+exit()
 
 if autofire:
     def click_task():

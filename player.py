@@ -2,6 +2,7 @@ import datetime
 import json
 import math
 import random
+import re
 import time
 import os
 import sys
@@ -13,6 +14,8 @@ import win32con
 import win32ui
 import winsound
 
+from app_logger import AppLogger
+from clicker import Clicker
 from exceptions import StopFarmException
 
 
@@ -306,6 +309,7 @@ class Player:
     enter_key = '\r'
 
     _ocr_reader = None
+    _app_logger = None
 
     positioning_to_the_center = False
 
@@ -510,7 +514,7 @@ class Player:
     }
     attribute_cross_naming_ru_en = {value: key for key, value in attribute_cross_naming_en_ru.items()}
 
-    def __init__(self, clicker):
+    def __init__(self, clicker: Clicker):
         self.clicker = clicker
 
     def log_message(self, text):
@@ -550,10 +554,17 @@ class Player:
     @property
     def ocr_reader(self):
         if self._ocr_reader is None:
-            from easyocr import Reader
-            self._ocr_reader = Reader(['ru'], gpu=False)
+            self._ocr_reader = True
+            # from easyocr import Reader
+            # self._ocr_reader = Reader(['ru'], gpu=False)
             # from paddleocr import PaddleOCR
         return self._ocr_reader
+
+    @property
+    def app_logger(self):
+        if self._app_logger is None:
+            self._app_logger = AppLogger(self.clicker.hwnd)
+        return self._app_logger
 
     def undock(self, available_directions_to_undock=None):
         available_directions_to_undock = available_directions_to_undock if available_directions_to_undock else self.available_directions_to_undock
@@ -1495,19 +1506,29 @@ class Player:
 
         self.scaled_radar = False
 
+    def get_tunnel_image(self):
+        screen, offset = self.clicker.screen_lookup(window=self.radar_window)
+        return tunnel_alt_img \
+            if self.clicker.find_image(image=tunnel_alt_img, threshold=self.tunnel_detection_precision,
+                                       screen=screen, offset=offset) else tunnel_img
+
     def fly_to_base_trough_tunnel(self, tries=None):
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
 
         self.close_all_windows()
 
-        self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
+        tunnel_true_img = self.get_tunnel_image()
+
+        self.approach(tunnel_true_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
 
         self.scale_in_radar()
 
+        tunnel_true_img = self.get_tunnel_image()
+
         for i in range(tries):
             screen, offset = self.clicker.screen_lookup(window=self.radar_window)
-            tunnel_coord = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision,
+            tunnel_coord = self.clicker.find_image(tunnel_true_img, threshold=self.tunnel_detection_precision,
                                                    centers=True, screen=screen, offset=offset)
 
             if tunnel_coord is None:
@@ -1517,6 +1538,7 @@ class Player:
                 time.sleep(.1)
                 self.clicker.dblclick(*tunnel_coord)
                 time.sleep(.1)
+                self.clicker.move(0, 0)
 
                 if self.press_esc_after_radar_action:
                     self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
@@ -1538,7 +1560,6 @@ class Player:
                         time.sleep(1)
                         break
 
-            self.clicker.move(0, 0)
             if i != tries - 1:
                 time.sleep(1)
 
@@ -1547,27 +1568,36 @@ class Player:
         return result
 
     def fly_from_tunnel_to(self, destination_name, tries=None):
+        if destination_name == "База клана":
+            return self.fly_to_base_trough_tunnel(tries=tries)
+
         tries = tries if tries is not None else self.fly_trough_tunnel_tries_amount
         result = False
 
         self.close_all_windows()
 
-        self.approach(tunnel_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
+        tunnel_true_img = self.get_tunnel_image()
+
+        self.approach(tunnel_true_img, threshold=self.tunnel_detection_precision, distance=self.tunnel_approach_distance)
 
         self.scale_in_radar()
 
+        tunnel_true_img = self.get_tunnel_image()
+
         for i in range(tries):
             screen, offset = self.clicker.screen_lookup(window=self.radar_window)
-            tunnel_coord = self.clicker.find_image(tunnel_img, threshold=self.tunnel_detection_precision,
+            tunnel_coord = self.clicker.find_image(tunnel_true_img, threshold=self.tunnel_detection_precision,
                                                    centers=True, screen=screen, offset=offset)
 
             if tunnel_coord is None:
                 self.log_error('Тоннель не обнаружен!')
             else:
+                self.app_logger.start_catching(target='^@\d+;', min_size=10)
                 self.clicker.move(*tunnel_coord)
                 time.sleep(.1)
                 self.clicker.dblclick(*tunnel_coord)
                 time.sleep(.1)
+                self.clicker.move(0, 0)
 
                 if self.press_esc_after_radar_action:
                     self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
@@ -1575,41 +1605,84 @@ class Player:
                 tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
                 if tunnel_window_coord is None:
                     self.log_error('Окно воздушных течений не было найдено!')
+                    self.app_logger.stop_catching()
                 else:
+                    logger_message = self.app_logger.message.get()
+                    available_options = list(map(lambda option: option.split(';', 2)[-1].rsplit(';', 7)[0],
+                                                 re.split(r';@\d+', logger_message)))
+                    # print(available_options)
+
+                    if destination_name not in available_options:
+                        self.log_error(
+                            f"Перелета \"{destination_name}\" нет среди доступных перелетов! {available_options}")
+                        return result
+
+                    options_images: dict = dict.fromkeys(available_options)
+
                     window = (
                         tunnel_window_coord[0], tunnel_window_coord[1],
                         tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400
                     )
-                    screen, offset = self.clicker.screen_lookup(window=window)
 
-                    last_texts = ['']
-                    texts = []
+                    next_option_index = 0
+                    last_discovered_option = None
+                    time.sleep(.5)
 
-                    while not result and last_texts != texts:
-                        last_texts = texts
-                        texts = []
-                        for bbox, text, accuracy in self.ocr_reader.readtext(screen):
-                            texts.append(text)
-                            if text == destination_name:
-                                result = True
-                                x, y = bbox[0]
-                                x += window[0]
-                                y += window[1]
-                                self.clicker.move(x, y)
-                                self.clicker.click(x + 1, y + 1)
-                                self.log_message(f'Выбран переход "{destination_name}".')
-                                break
+                    while any(value is None for value in options_images.values()):
+                        screen, offset = self.clicker.screen_lookup(window=window)
+
+                        # cv2.imwrite('screen.png', screen)
+                        option_barriers = self.clicker.find_pixels(color=(246, 235, 218), threshold=.95,
+                                                                   window=(
+                                                                       window[0] + 30, window[1], window[0] + 30,
+                                                                       window[3]),
+                                                                   screen=screen, offset=offset)
+                        # print(option_barriers)
+                        images_under_barriers = [self.clicker.get_image(
+                            window=(c[0] - 23, c[1] + 5, c[0] + 200, c[1] + 15),
+                            screen=screen, offset=offset) for c in option_barriers]
+
+                        drop_index = 0
+                        if last_discovered_option:
+                            last_discovered_option_image, coord = options_images[last_discovered_option]
+                            for idx, image in enumerate(images_under_barriers):
+                                if self.clicker.find_image(image=image, screen=last_discovered_option_image,
+                                                           offset=(0, 0), threshold=.95):
+                                    drop_index = idx + 1
+                                    break
+
+                        if drop_index == len(option_barriers):
+                            break
+
+                        new_options = dict(zip(
+                            available_options[next_option_index:],
+                            zip(images_under_barriers[drop_index:], option_barriers[drop_index:])
+                        ))
+                        last_discovered_option = list(new_options.keys())[-1]
+                        next_option_index += len(new_options)
+                        options_images.update(new_options)
+                        # print(list(new_options.keys()))
+
+                        # cv2.imwrite('screen.png', options_images[available_options[1]])
+                        if options_images[destination_name] is not None:
+                            result = True
+                            x, y = options_images[destination_name][1]
+                            x += 3
+                            y += 3
+                            self.clicker.move(x, y)
+                            self.clicker.click(x + 1, y + 1)
+                            self.log_message(f'Выбран переход "{destination_name}".')
+                            break
 
                         # Скроллим дальше, если возможно
-                        if not result and last_texts != texts:
-                            self.clicker.scroll(delta=-1000, x=tunnel_window_coord[0] + 100, y=tunnel_window_coord[1] + 100)
+                        if not result:
+                            self.clicker.scroll(delta=-1000, x=tunnel_window_coord[0] + 100,
+                                                y=tunnel_window_coord[1] + 100)
                             time.sleep(.5)
-                            screen, offset = self.clicker.screen_lookup(window=window)
 
                     if not result:
                         self.log_error(f'Переход "{destination_name}" не найден!')
 
-            self.clicker.move(0, 0)
             if result:
                 break
             if i != tries - 1:
@@ -1624,43 +1697,81 @@ class Player:
         result = False
 
         self.close_all_windows()
-
+        self.app_logger.start_catching(target='^@[0-9a-f]{16};', min_size=10)
         self.clicker.click(-130, 100)
         tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
         if tunnel_window_coord is None:
             self.log_error('Окно воздушных течений не было найдено!')
+            self.app_logger.stop_catching()
         else:
-            # [[b0, b1, b2, b3], str, float] window = (*b0, *b2)
+            logger_message = self.app_logger.message.get()
+
+            available_options = list(map(lambda option: option.split(';', 2)[-1].rsplit(';', 7)[0],
+                                         re.split(r';@\d+', logger_message)))
+            # print(available_options)
+
+            if destination_name not in available_options:
+                self.log_error(f"Перелета \"{destination_name}\" нет среди доступных перелетов! {available_options}")
+                return result
+
+            options_images: dict = dict.fromkeys(available_options)
+
             window = (
                 tunnel_window_coord[0], tunnel_window_coord[1],
                 tunnel_window_coord[0] + 300, tunnel_window_coord[1] + 400
             )
-            screen, offset = self.clicker.screen_lookup(window=window)
 
-            last_texts = ['']
-            texts = []
+            next_option_index = 0
+            last_discovered_option = None
+            time.sleep(.5)
 
-            while not result and last_texts != texts:
-                last_texts = texts
-                texts = []
-                for bbox, text, accuracy in self.ocr_reader.readtext(screen):
-                    texts.append(text)
-                    print(text)
-                    if text == destination_name:
-                        result = True
-                        x, y = bbox[0]
-                        x += window[0]
-                        y += window[1]
-                        self.clicker.move(x, y)
-                        self.clicker.click(x + 1, y + 1)
-                        self.log_message(f'Выбран переход "{destination_name}".')
-                        break
+            while any(value is None for value in options_images.values()):
+                screen, offset = self.clicker.screen_lookup(window=window)
+
+                # cv2.imwrite('screen.png', screen)
+                option_barriers = self.clicker.find_pixels(color=(246, 235, 218), threshold=.95,
+                                                           window=(
+                                                           window[0] + 30, window[1], window[0] + 30, window[3]),
+                                                           screen=screen, offset=offset)
+                # print(option_barriers)
+                images_under_barriers = [self.clicker.get_image(
+                    window=(c[0] - 23, c[1] + 5, c[0] + 200, c[1] + 15),
+                    screen=screen, offset=offset) for c in option_barriers]
+
+                drop_index = 0
+                if last_discovered_option:
+                    last_discovered_option_image, coord = options_images[last_discovered_option]
+                    for idx, image in enumerate(images_under_barriers):
+                        if self.clicker.find_image(image=image, screen=last_discovered_option_image, offset=(0, 0), threshold=.95):
+                            drop_index = idx + 1
+                            break
+
+                if drop_index == len(option_barriers):
+                    break
+
+                new_options = dict(zip(
+                    available_options[next_option_index:], zip(images_under_barriers[drop_index:], option_barriers[drop_index:])
+                ))
+                last_discovered_option = list(new_options.keys())[-1]
+                next_option_index += len(new_options)
+                options_images.update(new_options)
+                # print(list(new_options.keys()))
+
+                # cv2.imwrite('screen.png', options_images[available_options[1]])
+                if options_images[destination_name] is not None:
+                    result = True
+                    x, y = options_images[destination_name][1]
+                    x += 3
+                    y += 3
+                    self.clicker.move(x, y)
+                    self.clicker.click(x + 1, y + 1)
+                    self.log_message(f'Выбран переход "{destination_name}".')
+                    break
 
                 # Скроллим дальше, если возможно
-                if not result and last_texts != texts:
+                if not result:
                     self.clicker.scroll(delta=-1000, x=tunnel_window_coord[0] + 100, y=tunnel_window_coord[1] + 100)
                     time.sleep(.5)
-                    screen, offset = self.clicker.screen_lookup(window=window)
 
             if not result:
                 self.log_error(f'Переход "{destination_name}" не найден!')
@@ -2274,7 +2385,7 @@ class Player:
             screen, offset = self.clicker.screen_lookup()
             options = self.clicker.find_images(option_image, min_dist=5, centers=True, screen=screen, offset=offset)
 
-            if search_text:
+            if search_text and False:
                 min_x = min(options, key=lambda o: o[0])[0]
                 window = (
                     min_x,

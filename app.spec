@@ -12,6 +12,7 @@ a = Analysis(
         ('private_key.pem', '.'),
         ('*.kv', '.'),
         ('Sky2FlyBotManagerAutoUpdater.bat', '.'),
+        ('gui_logger_script.js', '.'),
     ],
     hiddenimports=['win32api', 'win32con', 'win32gui', 'win32ui'],
     hookspath=[],
