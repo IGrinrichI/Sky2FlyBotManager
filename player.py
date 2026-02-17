@@ -72,6 +72,7 @@ buying_up_closed_button = cv2.imread(resource_path(os.path.join('images', 'buyin
 # Тоннель
 # tunnel_img = cv2.imread(resource_path(os.path.join('images', 'tunnel.bmp')))
 tunnel_img = cv2.imread(resource_path(os.path.join('images', 'tunnel.png')), cv2.IMREAD_UNCHANGED)
+tunnel_alt_img = cv2.imread(resource_path(os.path.join('images', 'tunnel_alt.png')), cv2.IMREAD_UNCHANGED)
 tunnel_window_title = cv2.imread(resource_path(os.path.join('images', 'tunnel_window_title.bmp')))
 tunnel_window_base_title = cv2.imread(resource_path(os.path.join('images', 'tunnel_window_base_title.bmp')))
 
@@ -217,6 +218,12 @@ class Player:
     spam_attack = False
     spam_attack_stop_event = None
     spam_attack_interval = 0.17
+    tech_to_spam = []
+    spam_tech_only_in_combat = True
+    spam_tech_stop_event = None
+    tech_spam_time = dict()
+    tech_delay_between_uses = 0.1
+    tech_check_time = 0.1
     last_attack_time = 0
     enemy_types = []  # ['neutral', 'agressive', 'special']
     smart_targeting = True
@@ -296,6 +303,22 @@ class Player:
     auto_use_all_key = '~'
     radar_in_key = '[Ctrl]+'
     radar_out_key = '[Ctrl]-'
+    tech_slot_1_key = '1'
+    tech_slot_2_key = '2'
+    tech_slot_3_key = '3'
+    tech_slot_4_key = '4'
+    tech_slot_5_key = '5'
+    tech_slot_6_key = '6'
+    tech_slot_7_key = '7'
+    tech_slot_8_key = '8'
+    tech_slot_9_key = '9'
+    tech_slot_10_key = '0'
+    tech_slot_11_key = ''
+    tech_slot_12_key = ''
+    tech_slot_13_key = ''
+    tech_slot_14_key = ''
+    tech_slot_15_key = ''
+    tech_slot_16_key = ''
     activate_ability_1_key = '[Ctrl]1'
     activate_ability_2_key = '[Ctrl]2'
     activate_ability_3_key = '[Ctrl]3'
@@ -345,7 +368,7 @@ class Player:
     vortex_detection_precision = .2
     vortex_approach_distance = 10
 
-    clean_ram_periodically = True
+    clean_ram_periodically = False
     min_ram_to_clean = 300
 
     attribute_cross_naming_en_ru = {
@@ -401,6 +424,12 @@ class Player:
         "spam_attack": "спамить атаку",
         # "spam_attack_stop_event": "",
         # "last_attack_time": "",
+
+        "tech_to_spam": "техустройства для использования",
+        "spam_tech_only_in_combat": "использовать техустройства только в бою",
+        "tech_check_time": "частота проверки возможности использовать техустройства",
+        "tech_delay_between_uses": "задержка между использованиями техустройств",
+
         "enemy_types": "типы врагов для убийства",
         "fire_when_smart_targeting": "спамить атаку, когда цель выделена",
         "smart_targeting": "умное выделение цели",
@@ -467,6 +496,22 @@ class Player:
         "auto_use_all_key": "вкл. автоиспользование всех техустройств",
         "radar_in_key": "масштаб радара крупнее",
         "radar_out_key": "масштаб радара мельче",
+        "tech_slot_1_key": "выстрел слот 1",
+        "tech_slot_2_key": "выстрел слот 2",
+        "tech_slot_3_key": "выстрел слот 3",
+        "tech_slot_4_key": "выстрел слот 4",
+        "tech_slot_5_key": "выстрел слот 5",
+        "tech_slot_6_key": "выстрел слот 6",
+        "tech_slot_7_key": "выстрел слот 7",
+        "tech_slot_8_key": "выстрел слот 8",
+        "tech_slot_9_key": "выстрел слот 9",
+        "tech_slot_10_key": "выстрел слот 10",
+        "tech_slot_11_key": "выстрел слот 11",
+        "tech_slot_12_key": "выстрел слот 12",
+        "tech_slot_13_key": "выстрел слот 13",
+        "tech_slot_14_key": "выстрел слот 14",
+        "tech_slot_15_key": "выстрел слот 15",
+        "tech_slot_16_key": "выстрел слот 16",
         "activate_ability_1_key": "активное умение 1",
         "activate_ability_2_key": "активное умение 2",
         "activate_ability_3_key": "активное умение 3",
@@ -917,6 +962,7 @@ class Player:
                 time.sleep(self.spam_attack_interval)
 
         if self.spam_attack and self.spam_attack_stop_event is None:
+            self.stop_spam_attack()
             self.spam_attack_stop_event = Event()
             Thread(target=spam_attack, args=(self.spam_attack_stop_event, ), daemon=True).start()
 
@@ -924,6 +970,46 @@ class Player:
         if self.spam_attack and self.spam_attack_stop_event is not None:
             self.spam_attack_stop_event.set()
             self.spam_attack_stop_event = None
+
+    def start_spam_tech(self):
+        def spam_tech(stop_event):
+            while not stop_event.is_set():
+                lookup_time = time.time()
+                delta = 0
+                tech_to_use = [tech for tech, timeout in self.tech_to_spam
+                               if lookup_time - self.tech_spam_time.get(tech, 0) > timeout]
+
+                if tech_to_use and (not self.spam_tech_only_in_combat or self.in_combat):
+                    for tech in tech_to_use[:-1]:
+                        self.tech_spam_time[tech] = lookup_time + delta
+                        self.clicker.keypress(eval(f"self.tech_slot_{tech}_key"))
+                        time.sleep(self.tech_delay_between_uses)
+                        delta += self.tech_delay_between_uses
+                        # Если остановили, то выходим
+                        if stop_event.is_set():
+                            return
+
+                        # Если не в бою, то не включаем следующий тех
+                        if self.spam_tech_only_in_combat and not self.in_combat:
+                            break
+
+                    # Если не в бою, то не включаем следующий тех
+                    if not self.spam_tech_only_in_combat or self.in_combat:
+                        tech = tech_to_use[-1]
+                        self.tech_spam_time[tech] = lookup_time + delta
+                        self.clicker.keypress(eval(f"self.tech_slot_{tech}_key"))
+
+                time.sleep(self.tech_check_time)
+
+        if self.tech_to_spam and self.spam_tech_stop_event is None:
+            self.stop_spam_tech()
+            self.spam_tech_stop_event = Event()
+            Thread(target=spam_tech, args=(self.spam_tech_stop_event, ), daemon=True).start()
+
+    def stop_spam_tech(self):
+        if self.tech_to_spam and self.spam_tech_stop_event is not None:
+            self.spam_tech_stop_event.set()
+            self.spam_tech_stop_event = None
 
     def target_and_kill(self):
         if not self.kill_enemies or self.spam_attack:
@@ -2494,12 +2580,19 @@ class Player:
 
     def farm(self, mode=None):
         self.farm_start_time = time.time()
-        return {
-            "Убийство мобов в зоне": self.fly_in_zone_and_kill_mobs,
-            "Рыбалка": self.fishing,
-            "Одуванчики": self.dandelion_cycle,
-            "Дерево": self.woodcutting,
-        }[self.mode if mode is None else mode]()
+        try:
+            self.start_spam_tech()
+            result = {
+                "Убийство мобов в зоне": self.fly_in_zone_and_kill_mobs,
+                "Рыбалка": self.fishing,
+                "Одуванчики": self.dandelion_cycle,
+                "Дерево": self.woodcutting,
+            }[self.mode if mode is None else mode]()
+            self.stop_spam_tech()
+            return result
+        except Exception:
+            self.stop_spam_tech()
+            raise
 
     def in_city_actions(self, mode=None):
         action_list = {
