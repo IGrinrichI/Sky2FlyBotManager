@@ -14,7 +14,14 @@ import win32con
 import win32ui
 import winsound
 
-from app_logger import AppLogger
+try:
+    from app_logger import AppLogger
+    PLAYER_INIT_MESSAGE = ''
+except ImportError:
+    PLAYER_INIT_MESSAGE = ('Функциональность логгера процесса игры не была загружена!\n'
+                           'Она используется для различных взаимодействий с интерфейсом игры, в частности - перелеты по тоннелям.\n'
+                           'Возможно вам стоит установить Visual C++ Redistributable, отключить антивирус или запустить от администратора.')
+
 from clicker import Clicker
 from exceptions import StopFarmException
 
@@ -561,6 +568,8 @@ class Player:
 
     def __init__(self, clicker: Clicker):
         self.clicker = clicker
+        if PLAYER_INIT_MESSAGE:
+            self.log_error(PLAYER_INIT_MESSAGE)
 
     def log_message(self, text):
         print(str(datetime.datetime.now()), text)
