@@ -1195,11 +1195,19 @@ class Player:
         left_value = int(dir_pixel[1]) - int(left_pixel[1])
         right_value = int(dir_pixel[1]) - int(right_pixel[1])
         total_value = left_value + right_value
+
+        if total_value == 0:
+            return
+
         tdir = (
             (left_border[0] * (total_value - left_value) + right_border[0] * (total_value - right_value)) / total_value,
             (left_border[1] * (total_value - left_value) + right_border[1] * (total_value - right_value)) / total_value
         )
         tdir_len = pow(tdir[0] ** 2 + tdir[1] ** 2, .5)
+
+        if tdir_len == 0:
+            return
+
         tdir = (tdir[0] / tdir_len, tdir[1] / tdir_len)[::-1]
 
         asin = math.asin(tdir[1])
