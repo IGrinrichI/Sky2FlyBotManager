@@ -41,6 +41,7 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
 
         # Выставляем пресет
         player.load_preset(preset)
+        player.start_looting()
 
         # Запускаем периодическую очистку RAM
         if player.clean_ram_periodically:
@@ -55,6 +56,7 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
             try:
                 undock_with_overweight = False
                 player.loot_on_fly = player.do_looting
+                player.resume_looting()
                 clicker.reset_keyboard()
                 # Если запустили с места фарма, то незачем лететь
                 try:
@@ -88,6 +90,7 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                     print(datetime.datetime.now(), 'Фарм окончен, летим в город.')
                     # Летим в центр (город)
                     player.loot_on_fly = False
+                    player.pause_looting()
                     if undock_with_overweight:
                         player.fly_route([player.to_base_path[-1]])
                     else:
@@ -115,10 +118,14 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                 next_preset = player.next_preset + ('.preset' if not player.next_preset.endswith('.preset') else '')
                 if not hasattr(sys, '_MEIPASS'):
                     next_preset = os.path.join('presets', next_preset)
+
                 # Не знаю как лучше перетирать данные с прошлых пресетов, поэтому пересоздаем игрока
+                if player._app_logger is not None:
+                    player.app_logger.stop()
                 player = Player(clicker=clicker)
                 # Выставляем пресет
                 player.load_preset(next_preset)
+                player.start_looting()
                 # Вычисляем границы поля фарма
                 player.calc_edges()
     except Exception:

@@ -1134,7 +1134,19 @@ class Player:
 
         return loot
 
+    def start_looting(self):
+        if self.do_looting:
+            self.app_logger.start_looting()
+
+    def resume_looting(self):
+        if self.do_looting:
+            self.app_logger.resume_looting()
+
+    def pause_looting(self):
+        self.app_logger.pause_looting()
+
     def loot(self):
+        return False
         if not self.do_looting:
             return False
 
@@ -1574,8 +1586,8 @@ class Player:
                 raise ValueError
 
             self.clicker.keypress(self.force_key if speed_up else self.forward_key)
-            if loot:
-                self.loot()
+            # if loot:
+            #     self.loot()
             time.sleep(0.05)
             self.calculate_target_angle()
 
@@ -1590,7 +1602,11 @@ class Player:
                     self.log_error('Прыжок в другой лабиринт (ошибка)!')
                     self.clicker.keypress(win32con.VK_DOWN)
                     self.stop_rotation()
-                    return False
+                    while math.dist(self.radar_coords, (0, 0)) == 0:
+                        time.sleep(0.05)
+                        self.lookup_coords()
+                    self.fly_to(*self.radar_coords, mode='Переход между лабиринтами')
+                    return self.fly_to(x, y, mode)
 
             last_player_coord = self.radar_coords
 
@@ -2018,7 +2034,7 @@ class Player:
 
         self.act_delay(action)
 
-    def fly_route(self, route: list[((int, int), str)]):
+    def fly_route(self, route: list[list[list[int, int], str]]):
         for index, route_point in enumerate(route):
             if self.is_dead():
                 raise ValueError
@@ -2506,9 +2522,9 @@ class Player:
         time.sleep(1)
         self.clicker.keypress(self.force_forward_key)
 
-        for i in range(3):
-            self.loot()
-            time.sleep(.3)
+        # for i in range(3):
+        #     self.loot()
+        #     time.sleep(.3)
 
     def start_dialog(self):
         screen, offset = self.clicker.screen_lookup(window=self.action_window)
@@ -2696,15 +2712,15 @@ class Player:
             # Убиваем
             self.target_and_kill()
 
-            time.sleep(.01)
-            self.loot()  # Лутаем
+            # time.sleep(.01)
+            # self.loot()  # Лутаем
 
             if not self.in_combat and self.is_quit_available():
                 return True
 
             # Летим к следующей точке, если мобы кончились, или мы улетели за границу зоны
-            if not self.in_combat or not self.in_area():
-                self.loot()  # На всякий случай лутаем ещё
+            if route_points and (not self.in_combat or not self.in_area()):
+                # self.loot()  # На всякий случай лутаем ещё
 
                 if stick_to_closest:
                     closest_target = min(route_points, key=lambda coords: math.dist(coords, self.radar_coords))
@@ -2935,8 +2951,8 @@ class Player:
         # Если при запуске мы уже на дереве
         start_cutting_button = self.find_action(launch_saw_active_image)
         if start_cutting_button:
-            if self.do_looting:
-                self.scale_in_radar()
+            # if self.do_looting:
+            #     self.scale_in_radar()
             self.clicker.keypress(self.auto_use_all_key)
             self.start_spam_attack()
 
@@ -2947,8 +2963,8 @@ class Player:
             if self.is_dead():
                 self.stop_spam_attack()
 
-                if self.do_looting:
-                    self.scale_out_radar()
+                # if self.do_looting:
+                #     self.scale_out_radar()
 
                 raise ValueError
 
@@ -2956,8 +2972,8 @@ class Player:
                 if not self.is_farming() or self.is_hp_below_required():
                     self.stop_spam_attack()
 
-                    if self.do_looting:
-                        self.scale_out_radar()
+                    # if self.do_looting:
+                    #     self.scale_out_radar()
 
                     break
 
@@ -2967,9 +2983,9 @@ class Player:
 
                     self.target_and_kill()
 
-                    time.sleep(.01)
-                    if self.do_looting:
-                        self.loot()
+                    # time.sleep(.01)
+                    # if self.do_looting:
+                    #     self.loot()
                     # else:
                     #     if len(self.locate_loot()) > 0:
                     #         self.last_looting_time = time.time()
@@ -2980,8 +2996,8 @@ class Player:
                         self.stop_spam_attack()
                         if not self.change_saw():
                             self.log_error("Дровосеки закончились!")
-                            if self.do_looting:
-                                self.scale_out_radar()
+                            # if self.do_looting:
+                            #     self.scale_out_radar()
                             break
                         self.start_spam_attack()
                         # self.last_looting_time = time.time() + 30
@@ -2990,8 +3006,8 @@ class Player:
 
                     self.stop_spam_attack()
 
-                    if self.do_looting:
-                        self.scale_out_radar()
+                    # if self.do_looting:
+                    #     self.scale_out_radar()
 
                     bad_cutting_tries += 1
                     if bad_cutting_tries > self.tree_spot_max_bad_cutting_tries:
@@ -3018,8 +3034,8 @@ class Player:
                     else:
                         # Повернуться к центру дерева
                         self.rotate_to_radar(image=tree_spot_image, threshold=self.tree_spot_detection_precision)
-                    if not self.do_looting:
-                        self.scale_out_radar()
+                    # if not self.do_looting:
+                    #     self.scale_out_radar()
 
                     self.clicker.keypress(self.auto_use_all_key)
 

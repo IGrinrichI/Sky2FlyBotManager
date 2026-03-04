@@ -66,6 +66,11 @@ class AppLogger:
         # input("")
         # # input("[?] Нажмите Enter для выхода...")
 
+    def stop(self):
+        self.stop_catching()
+        self.script.unload()
+        self.session.detach()
+
     def clear_logger(self):
         # Очистка:
         while not self.log_queue.empty():
@@ -102,3 +107,15 @@ class AppLogger:
                 self.stop_catching()
                 self.message.put(message)
                 break
+
+    def start_looting(self):
+        self.script.exports_sync.autolooter()
+
+    def pause_looting(self):
+        self.script.exports_sync.pauseautolooter()
+
+    def resume_looting(self):
+        self.script.exports_sync.resumeautolooter()
+
+    def set_looting_interval(self, ms: int):
+        self.script.exports_sync.setsendinterval(ms)
