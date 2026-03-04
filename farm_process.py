@@ -3,6 +3,8 @@ import sys
 import time
 import datetime
 import traceback
+from multiprocessing import freeze_support
+freeze_support()
 from multiprocessing import Process, Pipe
 from threading import Thread
 import math
@@ -124,7 +126,5 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
 
 
 def get_farm_process(hwnd, preset, trial_time, screen_lookup_lock):
-    from multiprocessing import freeze_support
-    freeze_support()
     parent_conn, child_conn = Pipe()
     return Process(target=farm_process, args=(hwnd, preset, trial_time, child_conn, screen_lookup_lock), daemon=True), parent_conn

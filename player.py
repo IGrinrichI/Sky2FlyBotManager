@@ -634,7 +634,7 @@ class Player:
 
     def activate_ability(self, ability: int):
         if type(ability) is int and 0 < ability < 10:
-            self.clicker.keypress(eval(f'self.activate_ability_{ability}_key'))
+            self.clicker.keypress(self.__getattribute__(f'activate_ability_{ability}_key'))
             return True
         return False
 
@@ -1029,7 +1029,7 @@ class Player:
                 if tech_to_use and (not self.spam_tech_only_in_combat or self.in_combat):
                     for tech in tech_to_use[:-1]:
                         self.tech_spam_time[tech] = lookup_time + delta
-                        self.clicker.keypress(eval(f"self.tech_slot_{tech}_key"))
+                        self.clicker.keypress(self.__getattribute__(f"tech_slot_{tech}_key"))
                         time.sleep(self.tech_delay_between_uses)
                         delta += self.tech_delay_between_uses
                         # Если остановили, то выходим
@@ -1044,7 +1044,7 @@ class Player:
                     if not self.spam_tech_only_in_combat or self.in_combat:
                         tech = tech_to_use[-1]
                         self.tech_spam_time[tech] = lookup_time + delta
-                        self.clicker.keypress(eval(f"self.tech_slot_{tech}_key"))
+                        self.clicker.keypress(self.__getattribute__(f"tech_slot_{tech}_key"))
 
                 time.sleep(self.tech_check_time)
 
@@ -1743,20 +1743,21 @@ class Player:
                 if self.press_esc_after_radar_action:
                     self.clicker.keypress(win32con.VK_ESCAPE)  # Esc, чтобы убрать меню взаимодействия, если вывелось
 
-                tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
+                tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=self.action_timeout)
                 if tunnel_window_coord is None:
                     self.log_error('Окно воздушных течений не было найдено!')
                     self.app_logger.stop_catching()
                 else:
-                    logger_message = self.app_logger.message.get()
+                    logger_message = self.app_logger.message.get(timeout=self.action_timeout)
                     available_options = list(map(lambda option: option.split(';', 2)[-1].rsplit(';', 7)[0],
                                                  re.split(r';@\d+', logger_message)))
                     # print(available_options)
+                    self.log_message("Доступные перелеты:\n" + "\n".join(available_options))
 
                     if destination_name not in available_options:
                         self.log_error(
-                            f"Перелета \"{destination_name}\" нет среди доступных перелетов! {available_options}")
-                        return result
+                            f"Перелета \"{destination_name}\" нет среди доступных перелетов!")
+                        raise StopFarmException
 
                     options_images: dict = dict.fromkeys(available_options)
 
@@ -1840,20 +1841,21 @@ class Player:
         self.close_all_windows()
         self.app_logger.start_catching(target='^@[0-9a-f]{16};', min_size=10)
         self.clicker.click(-130, 100)
-        tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=2)
+        tunnel_window_coord = self.clicker.wait_for_image(tunnel_window_title, timeout=self.action_timeout)
         if tunnel_window_coord is None:
             self.log_error('Окно воздушных течений не было найдено!')
             self.app_logger.stop_catching()
         else:
-            logger_message = self.app_logger.message.get()
+            logger_message = self.app_logger.message.get(timeout=self.action_timeout)
 
             available_options = list(map(lambda option: option.split(';', 2)[-1].rsplit(';', 7)[0],
                                          re.split(r';@\d+', logger_message)))
             # print(available_options)
+            self.log_message("Доступные перелеты:\n" + "\n".join(available_options))
 
             if destination_name not in available_options:
-                self.log_error(f"Перелета \"{destination_name}\" нет среди доступных перелетов! {available_options}")
-                return result
+                self.log_error(f"Перелета \"{destination_name}\" нет среди доступных перелетов!")
+                raise StopFarmException
 
             options_images: dict = dict.fromkeys(available_options)
 
@@ -2043,7 +2045,7 @@ class Player:
                            backup_actions=backup_actions, backup_attributes=backup_attributes,
                            stop_at_route_point=stop_at_route_point)
 
-    def fly_route_point(self, route: list[((int, int), str)], index, stop_at_the_end=True):
+    def fly_route_point(self, route: list[list[list[int, int], str]], index, stop_at_the_end=True):
         if self.is_dead():
             raise ValueError
 
@@ -2244,11 +2246,15 @@ class Player:
             return False
 
     def drop_chests(self):
+        self.close_all_windows()
+        time.sleep(1)
         if self.open_cargo():
+            drop_any_chest = False
             screen, offset = self.clicker.screen_lookup()
             for chest_type in [chest_icon, black_chest_icon]:
                 chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
                 while chest_coord is not None:
+                    drop_any_chest = True
                     self.clicker.ldown(*chest_coord)
                     time.sleep(.5)
                     self.clicker.move(10, 10)
@@ -2261,6 +2267,11 @@ class Player:
                     time.sleep(1)
                     screen, offset = self.clicker.screen_lookup()
                     chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
+
+            if not drop_any_chest:
+                self.log_error("Не было выкинуто ни одного сундука!")
+
+            self.close_all_windows()
 
     def locate(self, image, threshold=None, min_dist=None):
         threshold = threshold if threshold is not None else self.locate_threshold
@@ -2715,6 +2726,8 @@ class Player:
                 time.sleep(self.delay_between_farm_attempts)
 
     def drop_resources(self):
+        self.close_all_windows()
+        time.sleep(1)
         self.drop_resources_last_time = time.time()
         if self.open_cargo():
             screen, offset = self.clicker.screen_lookup()

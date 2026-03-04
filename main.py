@@ -94,16 +94,25 @@ quest = False
 
 
 # player.clicker.screen_lookup()
+# player.fly_to(10, 34, "Быстро лететь к цели")
 # player.fly_from_tunnel_to("База клана")
 # player.fly_from_base_to('На платформу Фейра-ди-Сантана')
-# player.fly_from_base_to('На платформу "Пелотас"')
-# time.sleep(1)
-# player.fly_from_base_to('На платформу "Фернанда"')
-# time.sleep(1)
-# player.fly_from_base_to('На платформу Фейра-ди-Сантана')
-# time.sleep(1)
-# player.fly_from_base_to('В Лагуну')
-exit()
+# for i in range(100):
+#     player.fly_from_base_to('На платформу "Пелотас"')
+#     time.sleep(1)
+#     clicker.click()
+# for i in range(100):
+#     player.fly_from_base_to('На платформу "Пелотас"')
+#     time.sleep(1)
+#     player.fly_from_base_to('На платформу "Фернанда"')
+#     time.sleep(1)
+#     player.fly_from_base_to('На платформу Фейра-ди-Сантана')
+#     time.sleep(1)
+#     player.fly_from_base_to('В Лагуну')
+#     time.sleep(1)
+# exit()
+
+player.start_looting()
 
 if autofire:
     def click_task():

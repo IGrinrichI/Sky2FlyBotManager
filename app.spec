@@ -1,20 +1,35 @@
 # -*- mode: python ; coding: utf-8 -*-
 from kivy_deps import sdl2, glew
+import os
 
+
+# Собираем все скомпилированные .pyd файлы из папки проекта
+def collect_pyd(dir_name):
+    pyds = []
+    for root, dirs, files in os.walk(dir_name):
+        for f in files:
+            if f.endswith(".pyd"):
+                # Сохраняем структуру папок (файл, путь_внутри_exe)
+                rel_path = os.path.relpath(root, ".")
+                pyds.append((os.path.join(root, f), rel_path))
+    return pyds
+
+
+binaries = [(f, '.') for f in os.listdir(".") if f.endswith(".pyd")] + collect_pyd('../Clicker')
 
 a = Analysis(
-    ['dist/app.py'],
+    ['run.py'],
     pathex=[],
-    binaries=[],
+    binaries=binaries,
     datas=[
         ('images', 'images'),
-        (r'..\Clicker', '.'),
         ('private_key.pem', '.'),
         ('*.kv', '.'),
         ('Sky2FlyBotManagerAutoUpdater.bat', '.'),
         ('gui_logger_script.js', '.'),
     ],
-    hiddenimports=['win32api', 'win32con', 'win32gui', 'win32ui'],
+    hiddenimports=['win32api', 'win32con', 'win32gui', 'win32ui',
+                   'kivy', 'kivy.core.window', 'kivy.graphics.shader', 'requests', 'winsound', 'win32process', 'frida'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
