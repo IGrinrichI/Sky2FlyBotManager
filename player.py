@@ -6,7 +6,9 @@ import re
 import time
 import os
 import sys
-from threading import Thread, Lock, Event
+from _thread import interrupt_main
+from threading import Thread, Lock, Event, main_thread
+from traceback import print_stack
 
 import cv2
 import numpy as np
@@ -98,6 +100,8 @@ equipment_tab = cv2.imread(resource_path(os.path.join('images', 'equipment_tab.b
 crew_title = cv2.imread(resource_path(os.path.join('images', 'crew_title.png')))
 tech_title = cv2.imread(resource_path(os.path.join('images', 'tech_title.png')))
 items_from_storage_title = cv2.imread(resource_path(os.path.join('images', 'items_from_storage_title.png')))
+resources_title = cv2.imread(resource_path(os.path.join('images', 'resources_title.png')))
+different_title = cv2.imread(resource_path(os.path.join('images', 'different_title.png')))
 equipment_search_box = cv2.imread(resource_path(os.path.join('images', 'equipment_search_box.png')))
 gasholder_low_charge_img = cv2.imread(resource_path(os.path.join('images', 'gasholder_low_charge.bmp')))
 gasholder_full_charge_img = cv2.imread(resource_path(os.path.join('images', 'gasholder_full_charge.png')))
@@ -363,6 +367,10 @@ class Player:
     fishing_spot_approach_distance = 4
     fishing_spot_max_bad_fishing_tries = 1
 
+    drop_resources_periodically = False
+    drop_resources_interval = 1800
+    drop_resources_last_time = 0
+
     tree_spot_detection_precision = .65
     tree_spot_approach_distance = 4
     tree_spot_max_bad_cutting_tries = 1
@@ -375,7 +383,7 @@ class Player:
     vortex_detection_precision = .2
     vortex_approach_distance = 10
 
-    clean_ram_periodically = False
+    clean_ram_periodically = True
     min_ram_to_clean = 300
 
     attribute_cross_naming_en_ru = {
@@ -541,6 +549,9 @@ class Player:
         "fishing_spot_detection_precision": "точность определения рыболовного места",
         "fishing_spot_approach_distance": "дистанция приближения к рыболовному месту",
         "fishing_spot_max_bad_fishing_tries": "количество попыток вернуться на рыболовное место",
+
+        "drop_resources_periodically": "выкидывать ресурсы",
+        "drop_resources_interval": "частота выкидывания ресурсов",
         
         "tree_spot_detection_precision": "точность определения дерева",
         "tree_spot_approach_distance": "дистанция приближения к дереву",
@@ -571,10 +582,37 @@ class Player:
         if PLAYER_INIT_MESSAGE:
             self.log_error(PLAYER_INIT_MESSAGE)
 
+        self.log_time = time.time()
+
+        def deadlock_checker():
+            while True:
+                if time.time() - self.log_time > 900:
+                    self.log_error("Ошибка с залипанием процесса фарма!")
+
+                    # Главный поток обычно имеет имя 'MainThread' или его можно найти через threading.main_thread()
+                    main_thread_id = main_thread().ident
+
+                    for i in range(100):
+                        # Получаем словарь всех активных кадров (frames)
+                        frames = sys._current_frames()
+                        main_frame = frames.get(main_thread_id)
+
+                        if main_frame:
+                            print_stack(main_frame)
+                            print()
+                            time.sleep(0.05)
+
+                    interrupt_main()
+                time.sleep(60)
+
+        # Thread(target=deadlock_checker, daemon=True).start()
+
     def log_message(self, text):
+        self.log_time = time.time()
         print(str(datetime.datetime.now()), text)
 
     def log_error(self, text):
+        self.log_time = time.time()
         print(str(datetime.datetime.now()), text)
         if self.on_error_save_image:
             self.clicker.save_dump(text)
@@ -2206,23 +2244,23 @@ class Player:
             return False
 
     def drop_chests(self):
-        self.open_cargo()
-        screen, offset = self.clicker.screen_lookup()
-        for chest_type in [chest_icon, black_chest_icon]:
-            chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
-            while chest_coord is not None:
-                self.clicker.ldown(*chest_coord)
-                time.sleep(.5)
-                self.clicker.move(10, 10)
-                time.sleep(.5)
-                self.clicker.lup(10, 10)
-                drop_button_coord = self.clicker.wait_for_image(drop_button, timeout=6)
-                if drop_button_coord is not None:
-                    self.clicker.click(*drop_button_coord)
-                self.log_message("Выброшен сундук.")
-                time.sleep(1)
-                screen, offset = self.clicker.screen_lookup()
+        if self.open_cargo():
+            screen, offset = self.clicker.screen_lookup()
+            for chest_type in [chest_icon, black_chest_icon]:
                 chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
+                while chest_coord is not None:
+                    self.clicker.ldown(*chest_coord)
+                    time.sleep(.5)
+                    self.clicker.move(10, 10)
+                    time.sleep(.5)
+                    self.clicker.lup(10, 10)
+                    drop_button_coord = self.clicker.wait_for_image(drop_button, timeout=6)
+                    if drop_button_coord is not None:
+                        self.clicker.click(*drop_button_coord)
+                    self.log_message("Выброшен сундук.")
+                    time.sleep(1)
+                    screen, offset = self.clicker.screen_lookup()
+                    chest_coord = self.clicker.find_image(chest_type, screen=screen, offset=offset)
 
     def locate(self, image, threshold=None, min_dist=None):
         threshold = threshold if threshold is not None else self.locate_threshold
@@ -2676,12 +2714,30 @@ class Player:
             else:
                 time.sleep(self.delay_between_farm_attempts)
 
+    def drop_resources(self):
+        self.drop_resources_last_time = time.time()
+        if self.open_cargo():
+            screen, offset = self.clicker.screen_lookup()
+            for title_type in [different_title, resources_title]:
+                title_coord = self.clicker.find_image(title_type, screen=screen, offset=offset)
+                while title_coord is not None:
+                    self.clicker.drag_and_drop(title_coord[0] + 30, title_coord[1] + 40, 10, 10)
+                    drop_button_coord = self.clicker.wait_for_image(drop_button, timeout=6)
+                    if drop_button_coord is not None:
+                        self.clicker.click(*drop_button_coord)
+                        self.log_message("Выброшен ресурс.")
+                    time.sleep(1)
+                    screen, offset = self.clicker.screen_lookup()
+                    title_coord = self.clicker.find_image(title_type, screen=screen, offset=offset)
+            self.close_all_windows()
+
     def fishing(self):
         bad_fishing_tries = 0
         max_bad_fishing_tries = self.fishing_spot_max_bad_fishing_tries
         catching_window_coord = (0, 0, -1, -1)
         fishing_in_progress = False
         last_continue_click_coord = None
+        self.drop_resources_last_time = time.time()
 
         fishing_image = {
             True: fishing_spot,
@@ -2706,6 +2762,10 @@ class Player:
                 is_farm_not_ended = self.is_farming()
                 if not (is_farm_not_ended or fishing_in_progress):
                     break
+
+                if self.drop_resources_periodically:
+                    if time.time() - self.drop_resources_last_time > self.drop_resources_interval:
+                        self.drop_resources()
 
                 screen, offset = self.clicker.screen_lookup()
                 # cv2.imwrite('screen.png', self.clicker.screen)

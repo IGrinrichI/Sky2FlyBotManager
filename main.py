@@ -93,7 +93,6 @@ quest = False
 
 
 
-
 # player.clicker.screen_lookup()
 # player.fly_from_tunnel_to("База клана")
 # player.fly_from_base_to('На платформу Фейра-ди-Сантана')
