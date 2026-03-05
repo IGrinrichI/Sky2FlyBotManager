@@ -35,6 +35,9 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
         sys.stdout = child_conn
         sys.stderr = child_conn
 
+        timeouts = dict()
+        last_time_farmed = dict()
+
         clicker = Clicker(retry_color=[118, 105, 86], screen_lookup_lock=screen_lookup_lock)
         clicker.hwnd = hwnd
         player = Player(clicker=clicker)
@@ -54,7 +57,17 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
         player.calc_edges()
 
         while True:
+            last_farm_time_updated = False
             try:
+                # Ожидание между фармом
+                if preset in timeouts:
+                    sleep_time = last_time_farmed[preset] + timeouts[preset] - time.time()
+
+                    if sleep_time > 0:
+                        time.sleep(sleep_time)
+
+                timeouts[preset] = player.farm_attempt_timeout
+
                 undock_with_overweight = False
                 player.loot_on_fly = player.do_looting
                 player.resume_looting()
@@ -89,6 +102,10 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                     if player.is_overweight():
                         print(datetime.datetime.now(), 'Перегруз')
                     print(datetime.datetime.now(), 'Фарм окончен, летим в город.')
+                    # Обновляем время последнего фарма
+                    if not last_farm_time_updated:
+                        last_time_farmed[preset] = time.time()
+                        last_farm_time_updated = True
                     # Летим в центр (город)
                     player.loot_on_fly = False
                     player.pause_looting()
@@ -100,13 +117,20 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                             player.drop_chests()
                         player.fly_route(player.to_base_path)
                 except ValueError:
-                    pass
+                    # Обновляем время последнего фарма
+                    if not last_farm_time_updated:
+                        last_time_farmed[preset] = time.time()
+                        last_farm_time_updated = True
 
                 print(datetime.datetime.now(), 'В городе')
 
                 player.in_city_actions()
             except StopFarmException:
                 player.log_error("Фарм будет окончен!")
+                # Обновляем время последнего фарма
+                if not last_farm_time_updated:
+                    last_time_farmed[preset] = time.time()
+                    last_farm_time_updated = True
                 player.repeat_cycle_forever = False
 
             if (not player.repeat_cycle_forever and not player.next_preset) or trial_time <= time.time():
@@ -116,14 +140,25 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                 break
 
             if not player.repeat_cycle_forever and player.next_preset:
-                next_preset = player.next_preset + ('.preset' if not player.next_preset.endswith('.preset') else '')
+                preset = player.next_preset + ('.preset' if not player.next_preset.endswith('.preset') else '')
                 if not hasattr(sys, '_MEIPASS'):
-                    next_preset = os.path.join('presets', next_preset)
+                    preset = os.path.join('presets', preset)
 
                 # Не знаю как лучше перетирать данные с прошлых пресетов, поэтому пересоздаем игрока
                 if player._app_logger is not None:
                     player.app_logger.stop()
                 player = Player(clicker=clicker)
+
+                if preset in timeouts:
+                    current_time = time.time()
+                    next_presets = list(timeouts.keys())
+                    target_preset_index = next_presets.index(preset)
+                    next_presets = next_presets[target_preset_index:] + next_presets[0:target_preset_index]
+                    ready_to_farm = next(filter(lambda pr: last_time_farmed[pr] + timeouts[pr] <= current_time, next_presets), None)
+                    if ready_to_farm is None:
+                        ready_to_farm = min(next_presets, key=lambda pr: last_time_farmed[pr] + timeouts[pr])
+                    preset = ready_to_farm
+
                 # Выставляем пресет
                 if not player.load_preset(preset):
                     return False

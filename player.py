@@ -177,6 +177,7 @@ meteostation_tg_img = cv2.imread(resource_path(os.path.join('images', 'meteostat
 class Player:
     mode = 'Убийство мобов в зоне'
     next_preset = None
+    farm_attempt_timeout = 0
     on_error_save_image = False
     check_state_in_city_before_farm = False
     warp_bias = 7
@@ -389,6 +390,7 @@ class Player:
     attribute_cross_naming_en_ru = {
         "mode": "режим работы",
         "next_preset": "следующий пресет",
+        "farm_attempt_timeout": "минимальное время перед повторным фармом",
         "on_error_save_image": "в случае ошибки сохранять изображение",
         "check_state_in_city_before_farm": "выполнять проверку в начале перед вылетом",
         "warp_bias": "изменение координат, считающееся перелетом в другую локацию",
