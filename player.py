@@ -2112,6 +2112,11 @@ class Player:
                        stop_at_route_point=stop_at_route_point)
 
     def load_preset(self, file_path):
+        self.log_message(f"Загрузка пресета \"{os.path.basename(file_path).rsplit('.', 1)[0]}\".")
+        if not os.path.exists(file_path):
+            self.log_error("Файл пресета не существует!")
+            return False
+
         with open(file_path, 'r', encoding='utf8') as f:
             data = json.loads(f.read())
             for attribute, value in data.items():
@@ -2121,6 +2126,7 @@ class Player:
                     setattr(self, attribute.lower(), value)
                 else:
                     self.log_error(f"Внимание! Параметр \"{attribute}\" не поддерживается!")
+        return True
 
     def find_text(self, text, window=None):
         screen, offset = self.clicker.screen_lookup(window=window)

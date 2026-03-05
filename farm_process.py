@@ -40,7 +40,8 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
         player = Player(clicker=clicker)
 
         # Выставляем пресет
-        player.load_preset(preset)
+        if not player.load_preset(preset):
+            return False
         player.start_looting()
 
         # Запускаем периодическую очистку RAM
@@ -124,7 +125,9 @@ def farm_process(hwnd, preset, trial_time, child_conn, screen_lookup_lock):
                     player.app_logger.stop()
                 player = Player(clicker=clicker)
                 # Выставляем пресет
-                player.load_preset(next_preset)
+                if not player.load_preset(preset):
+                    return False
+
                 player.start_looting()
                 # Вычисляем границы поля фарма
                 player.calc_edges()
