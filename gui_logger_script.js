@@ -149,7 +149,14 @@ function autoLooter() {
                             lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
                             itemsToPickUp.push(data.slice(7, 7 + 6));
                         }
-                    } else if (areUint8ArraysEqual(packetHeader, [0xd3, 0x10])) { // Выпадение пушинки с одуванчика
+                    } /*else if (areUint8ArraysEqual(packetHeader, [0x04, 0x11])) { // Появление контейнера (трупа персонажа) на радаре
+                        if (!lootTraker.has(toKey(data.slice(7, 7 + 6)))) {
+                            objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
+                            lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
+                            itemsToPickUp.push(data.slice(7, 7 + 6));
+                        }
+                    }*/ else if (areUint8ArraysEqual(packetHeader, [0xd3, 0x10])) { // Выпадение пушинки с одуванчика
+                        if (data[24] !== 0x0c) return;
                         objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
                         lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
                         itemsToPickUp.push(data.slice(7, 7 + 6));
@@ -161,6 +168,13 @@ function autoLooter() {
                             objectTraker.delete(oidKey);
                             lootTraker.delete(lidKey);
                         } catch (e) { }
+                    } else if (areUint8ArraysEqual(packetHeader, [0xdc, 0x10])) { // Найден контейнер (с босса-острова?) лут
+                        if (data.length < 33) return;
+                        objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
+                        lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
+                        let currentHP = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
+                        let totalHP = data[35] | (data[36] << 8) | (data[37] << 16) | (data[38] << 24);
+                        if (currentHP === 0 || totalHP === 0) itemsToPickUp.push(data.slice(7, 7 + 6));
                     } else if (areUint8ArraysEqual(packetHeader, [0x75, 0x10])) { // Подобран лут (контейнер/босс?)
                         try {
                             let oid = data.slice(5, 5 + 2);
@@ -170,28 +184,29 @@ function autoLooter() {
                             lootTraker.delete(lidKey);
                         } catch (e) { }
                     } else if (areUint8ArraysEqual(packetHeader, [0xd8, 0x10])) { // Всплытие лута из под неба
+                        if (data.length < 33) return;
                         objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
                         lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
                         itemsToPickUp.push(data.slice(7, 7 + 6));
                     } else if (areUint8ArraysEqual(packetHeader, [0x68, 0x10])) { // Появление моба на радаре
+                        if (data.length < 33) return;
                         objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
                         lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
                         // Запуск подбора надо делать только для особого формата пакета,
                         // как смерть медузы или появление трупа на горизонте
                         let currentHP = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
                         if (currentHP === 0) itemsToPickUp.push(data.slice(7, 7 + 6));
-                    } else if (areUint8ArraysEqual(packetHeader, [0x30, 0x11])) { // Смерть моба ?
+                    } /*else if (areUint8ArraysEqual(packetHeader, [0x30, 0x11])) { // Смерть моба ? (опыт с моба)
                         if (data.length < 10) return;
                         itemsToPickUp.push(objectTraker.get(toKey(data.slice(10, 10 + 2))));
-                    } else if (areUint8ArraysEqual(packetHeader, [0x16, 0x11])) { // Разрыв
+                    }*/ else if (areUint8ArraysEqual(packetHeader, [0x16, 0x11])) { // Разрыв
                         itemsToPickUp.push(data.slice(7, 7 + 6));
                         objectTraker.set(toKey(data.slice(13, 13 + 2)), data.slice(7, 7 + 6));
                         lootTraker.set(toKey(data.slice(7, 7 + 6)), data.slice(13, 13 + 2));
-                    } /*else if (areUint8ArraysEqual(packetHeader, [0x66, 0x10])) { // Мертвый моб ? ушел под небо (поднебки)
-                        if (data[4] !== 0x18) return;
-                        console.log(`Обнаружен моб под небом ${toKey(data.slice(5, 5 + 2))} с id предмета ${toKey(objectTraker.get(toKey(data.slice(5, 5 + 2))))}`);
-//                        itemsToPickUp.push(objectTraker.get(toKey(data.slice(5, 5 + 2))));
-                    }*/
+                    } else if (areUint8ArraysEqual(packetHeader, [0x66, 0x10])) { // Мертвый моб ? ушел под небо (поднебки)
+                        if (data[4] !== 0x18 || data[8] !== 0x42) return;
+                        itemsToPickUp.push(objectTraker.get(toKey(data.slice(5, 5 + 2))));
+                    }
                 } catch (e) {}
             });
 
